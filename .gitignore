@@ -1,2 +1,4 @@
 obj/
+!obj/.keep
 .object_dir/
+*.npp
