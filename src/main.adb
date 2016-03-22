@@ -1,21 +1,13 @@
 with Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
-with Ada.Direct_IO;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;
-with GNAT.SHA1;
 with GNAT.Directory_Operations;
-with Ada.Calendar;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO.Unbounded_IO;
-with Ada.Sequential_IO;
 with Ada.IO_Exceptions;
 with Ada.Command_Line;
-with Ada.Streams.Stream_IO;
 
 -- project imports
-with file_sha1;
 with config;
 with file_item;
 with album;
@@ -24,7 +16,6 @@ with file_operations;
 procedure main is
    use Ada.Directories;
    use Ada.Text_IO;
-   use Ada.Text_IO.Unbounded_IO;
    use Ada.Characters.Handling;
    use GNAT.Directory_Operations;
    use file_item;
@@ -32,10 +23,10 @@ procedure main is
    
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
-   package STIO renames Ada.Streams.Stream_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
    
    root_album_set : Album_Set.Set;
+
 
    function Integer2Hexa
      (Hex_Int : Integer;
@@ -57,6 +48,7 @@ procedure main is
       return Result;
    end Integer2Hexa;
 
+
    procedure create_object_directory (name : String) is
       prefix : String (1 .. 2);
    begin
@@ -75,6 +67,7 @@ procedure main is
       end loop;
    end create_object_directory;
    
+   
    procedure Create_New_Dir(Name : String) is
    begin
       if not Ada.Directories.Exists (Name) then
@@ -92,21 +85,25 @@ procedure main is
       create_object_directory (config.properties_dir);
    end create_directories;
    
+   
    procedure create_files is
    begin
       file_operations.create_empty_file(config.album_refs_file);
+      -- create a blank object
       file_operations.create_empty_file(DIR_OPS.Format_Pathname(config.object_dir & "/da/" & "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
    end create_files;
+   
    
    procedure clear_temp_dir is
    begin
       file_operations.remake_directory(config.Temp_Dir);
    end clear_temp_dir;
    
+   
    procedure add_files is
       Search    : Search_Type;
       Dir_Ent   : Directory_Entry_Type;
-      Directory : String := ".";
+      Directory : constant String := ".";
       begin
        Ada.Directories.Start_Search (Search, Directory, "");
        while More_Entries (Search) loop
@@ -114,18 +111,15 @@ procedure main is
           if Ada.Directories.Kind (Dir_Ent) =
             Ada.Directories.File_Kind'(Ordinary_File)
           then
-    
              add_file : declare
                 item : file_item.file_info;
              begin
                 begin
                    file_item.create (item, Simple_Name (Dir_Ent));
-                   Ada.Text_IO.Put_Line (item.sha1 & " " & Simple_Name (Dir_Ent));
+                   TIO.Put_Line (item.sha1 & " " & Simple_Name (Dir_Ent));
                 exception
-                   when Ada.IO_Exceptions.End_Error =>
-                      Ada.Text_IO.Put
-                        (File => Standard_Error,
-                         Item => "IO_Exceptions.End_Error");
+                   -- file was empty
+                   when Ada.IO_Exceptions.End_Error => null;
                 end;
              end add_file;
           end if;
@@ -133,10 +127,10 @@ procedure main is
        Ada.Directories.End_Search (Search);
    end add_files;
    
+   
    procedure test is
       items      : Album_Set.Set;
       album_item : Album_Info;
-      set_cursor : Album_Set.Cursor;
    begin
       Create (Album_Item, "food");
       Album_Set.Insert (Items, Album_Item);
@@ -163,7 +157,7 @@ procedure main is
          Album_Set.Insert (Items, temp_album);
          album.Save_Albums(items, config.album_refs_file);
          TIO.Put_Line("added new album");
-      exception when CONSTRAINT_ERROR => 
+      exception when CONSTRAINT_ERROR =>
          TIO.Put_Line(File => Standard_Error, Item => "duplicate album");
       end;
    end add_new_album_cmd;
@@ -182,6 +176,8 @@ begin
    
       if CLI.Argument(1) = "help" then
          config.display_help;
+      elsif CLI.Argument(1) = "add" then
+         add_files;
       elsif CLI.Argument(1) = "test" then
          test;
       elsif CLI.Argument(1) = "tree" then
@@ -193,8 +189,6 @@ begin
          CLI.Set_Exit_Status (CLI.Failure);   
       end if;
    end if;
-   
-   --album.Load_Albums(root_album_set, config.album_refs_file);
    
    -- clean up any temporary files or directories
    clear_temp_dir;

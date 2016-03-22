@@ -1,13 +1,11 @@
 with Ada.Directories;
 with GNAT.Directory_Operations;
-with Ada.Strings.Unbounded;
 with config;
+
 with file_sha1;
-with Ada.Calendar;
 
 package body file_item is
    use GNAT.Directory_Operations;
-   use Ada.Strings.Unbounded;
 
    function get_path (item : file_info) return String is
    begin
@@ -21,6 +19,7 @@ package body file_item is
       item.Size      := Integer (Ada.Directories.Size (path));
       item.Extension := To_Unbounded_String (Ada.Directories.Extension (path));
       item.Added_At  := Ada.Calendar.Clock;
+      item.value_length := (item'Size)/8;
 
       if not Ada.Directories.Exists (get_path (item)) then
          Ada.Directories.Copy_File (path, get_path (item));
@@ -31,4 +30,10 @@ package body file_item is
    begin
       null;
    end update;
+   
+   function get_by_sha1(sha1 : String) return file_info is
+      result : file_info;
+   begin
+      return result;
+   end get_by_sha1;
 end file_item;
