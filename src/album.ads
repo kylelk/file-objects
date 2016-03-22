@@ -1,21 +1,19 @@
 with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO.Unbounded_IO;
 with Ada.Text_IO;
 with Ada.Streams.Stream_IO;
 
 package album is
    package STIO renames Ada.Streams.Stream_IO;
-   use Ada.Strings.Unbounded;
-   type Name_size is new Integer range 1 .. 255;
 
    type Album_Info is tagged record
       -- SHA-1 of the album entries file
-      Entries_Pointer  : String (1 .. 40);
-      Name_Length      : Name_size;
-      Name             : Unbounded_String;
-      -- SHA-1 of the album entries file
-      Children_Pointer : String (1 .. 40);
+      Entries_Pointer  : String (1 .. 40) := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+      --Seperator : Character := ' ';
+      -- SHA-1 of the children album entries file
+      Children_Pointer : String (1 .. 40) := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+      --Seperator_Name : Character := ' ';
+      Name             : String(1..127);-- := (others=> ' ');
+      line_ending : Character := ASCII.LF;
    end record;
 
    function "<" (a, b : Album_Info) return Boolean;
@@ -24,13 +22,10 @@ package album is
      (item            : in out Album_Info;
       entries_pointer :        String;
       name            :        String);
-   procedure Create
-     (item            : in out Album_Info;
-      entries_pointer :        String;
-      name            :        Unbounded_String);
-   procedure Update_Name_Length (Item : in out Album_Info);
+   procedure Create(item : in out Album_Info; name : String);
    package Album_Set is new Ada.Containers.Ordered_Sets (Album_Info);
-   procedure Save_Albums (Album_Items : in out Album_Set.Set; path : String);
+   procedure Save_Albums (Album_Items : in Album_Set.Set; path : String);
+   procedure Load_Albums(Album_Items : out Album_Set.Set; path : String);
    procedure Print_Tree (Album_Items : Album_Set.Set);
 
 private

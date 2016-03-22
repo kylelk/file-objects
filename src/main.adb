@@ -33,6 +33,9 @@ procedure main is
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
    package STIO renames Ada.Streams.Stream_IO;
+   package DIR_OPS renames GNAT.Directory_Operations;
+   
+   root_album_set : Album_Set.Set;
 
    function Integer2Hexa
      (Hex_Int : Integer;
@@ -92,6 +95,7 @@ procedure main is
    procedure create_files is
    begin
       file_operations.create_empty_file(config.album_refs_file);
+      file_operations.create_empty_file(DIR_OPS.Format_Pathname(config.object_dir & "/da/" & "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
    end create_files;
    
    procedure clear_temp_dir is
@@ -134,22 +138,42 @@ procedure main is
       album_item : Album_Info;
       set_cursor : Album_Set.Cursor;
    begin
-      Create (Album_Item, "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed", "food");
+      Create (Album_Item, "food");
       Album_Set.Insert (Items, Album_Item);
       
-      Create (Album_Item, "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed", "animal");
+      Create (Album_Item, "animal");
       Album_Set.Insert (Items, Album_Item);
       
-      Create (Album_Item, "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed", "movie");
+      Create (Album_Item, "movie");
       Album_Set.Insert (Items, Album_Item);
       
-      -- album.Print_Tree (items);
+      Create (Album_Item, "TV show");
+      Album_Set.Insert (Items, Album_Item);
+      
+      album.Print_Tree (items);
       album.Save_Albums(items, config.album_refs_file);
    end test;
    
+   
+   procedure add_new_album_cmd(items : in out Album_Set.Set) is
+      temp_album : Album_Info;
+   begin
+      begin
+         album.Create(temp_album, CLI.Argument(2));
+         Album_Set.Insert (Items, temp_album);
+         album.Save_Albums(items, config.album_refs_file);
+         TIO.Put_Line("added new album");
+      exception when CONSTRAINT_ERROR => 
+         TIO.Put_Line(File => Standard_Error, Item => "duplicate album");
+      end;
+   end add_new_album_cmd;
+   
 begin
+
    create_directories;
    create_files;
+   
+   album.Load_Albums(root_album_set, config.album_refs_file);
    
    if CLI.Argument_count < 1 then
       config.display_help;
@@ -160,12 +184,17 @@ begin
          config.display_help;
       elsif CLI.Argument(1) = "test" then
          test;
+      elsif CLI.Argument(1) = "tree" then
+         album.Print_Tree(root_album_set);
+      elsif CLI.Argument(1) = "new" and CLI.Argument_count > 1 then
+         add_new_album_cmd(root_album_set);
       else
          TIO.Put_Line("invalid command");
          CLI.Set_Exit_Status (CLI.Failure);   
       end if;
-      
    end if;
+   
+   --album.Load_Albums(root_album_set, config.album_refs_file);
    
    -- clean up any temporary files or directories
    clear_temp_dir;
