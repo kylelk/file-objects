@@ -27,10 +27,8 @@ package album is
       entries_pointer :        String;
       name            :        Unbounded_String);
    procedure Update_Name_Length (Item : in out Album_Info);
-
    package Album_Set is new Ada.Containers.Ordered_Sets (Album_Info);
    procedure Save_Albums (Album_Items : Album_Set.Set);
-
    procedure Print_Tree (Album_Items : Album_Set.Set);
 
 private
