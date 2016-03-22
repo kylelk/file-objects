@@ -1,19 +1,18 @@
 with Ada.Containers.Ordered_Sets;
 with Ada.Text_IO;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Unbounded;
 
 package album is
    package STIO renames Ada.Streams.Stream_IO;
+   package UBS renames Ada.Strings.Unbounded;
 
    type Album_Info is tagged record
       -- SHA-1 of the album entries file
       Entries_Pointer  : String (1 .. 40) := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-      --Seperator : Character := ' ';
       -- SHA-1 of the children album entries file
       Children_Pointer : String (1 .. 40) := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-      --Seperator_Name : Character := ' ';
-      Name             : String(1..127);-- := (others=> ' ');
-      line_ending : Character := ASCII.LF;
+      Name             : UBS.Unbounded_String; -- := (others=> ' ');
    end record;
 
    function "<" (a, b : Album_Info) return Boolean;

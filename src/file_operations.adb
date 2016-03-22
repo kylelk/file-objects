@@ -12,7 +12,7 @@ package body file_operations is
    
    procedure create_empty_file(path : String) is
       File_Handle : STIO.File_Type;
-   begin
+      begin
       if not Ada.Directories.Exists(path) then
          STIO.Create(File_Handle, STIO.Out_File, path);
          STIO.Close (File_Handle);

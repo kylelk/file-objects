@@ -17,7 +17,7 @@ procedure main is
    use Ada.Directories;
    use Ada.Text_IO;
    use Ada.Characters.Handling;
-   use GNAT.Directory_Operations;
+   --use GNAT.Directory_Operations;
    use file_item;
    use album;
    
@@ -47,26 +47,6 @@ procedure main is
       Result := To_Lower (Result);
       return Result;
    end Integer2Hexa;
-
-
-   procedure create_object_directory (name : String) is
-      prefix : String (1 .. 2);
-   begin
-      if not Ada.Directories.Exists (name) then
-         Ada.Directories.Create_Directory (name);
-      end if;
-
-      for I in 0 .. 255 loop
-         prefix := Integer2Hexa (I);
-         if not Ada.Directories.Exists
-             (Format_Pathname (name & "/") & prefix)
-         then
-            Ada.Directories.Create_Directory
-              (Format_Pathname (name & "/") & prefix);
-         end if;
-      end loop;
-   end create_object_directory;
-   
    
    procedure Create_New_Dir(Name : String) is
    begin
@@ -77,12 +57,16 @@ procedure main is
    
 
    procedure create_directories is
+      prefix : String (1 .. 2);
    begin
       Create_New_Dir(Config.project_dir);
+      Create_New_Dir(Config.object_dir);
       Create_New_Dir(Config.Temp_Dir);
       
-      create_object_directory (config.object_dir);
-      create_object_directory (config.properties_dir);
+      for I in 0 .. 255 loop
+         prefix := Integer2Hexa (I);
+         Create_New_Dir(DIR_OPS.Format_Pathname (Config.object_dir & "/") & prefix);
+      end loop;
    end create_directories;
    
    
@@ -148,15 +132,18 @@ procedure main is
       album.Save_Albums(items, config.album_refs_file);
    end test;
    
-   
    procedure add_new_album_cmd(items : in out Album_Set.Set) is
       temp_album : Album_Info;
    begin
       begin
          album.Create(temp_album, CLI.Argument(2));
-         Album_Set.Insert (Items, temp_album);
-         album.Save_Albums(items, config.album_refs_file);
-         TIO.Put_Line("added new album");
+         for I in 2..CLI.Argument_Count loop
+            TIO.Put_Line("- " & CLI.Argument(I));
+         end loop;
+         
+         -- Album_Set.Insert (Items, temp_album);
+         -- album.Save_Albums(items, config.album_refs_file);
+         -- TIO.Put_Line("added new album");
       exception when CONSTRAINT_ERROR =>
          TIO.Put_Line(File => Standard_Error, Item => "duplicate album");
       end;
@@ -182,8 +169,12 @@ begin
          test;
       elsif CLI.Argument(1) = "tree" then
          album.Print_Tree(root_album_set);
-      elsif CLI.Argument(1) = "new" and CLI.Argument_count > 1 then
-         add_new_album_cmd(root_album_set);
+      elsif CLI.Argument(1) = "new" then
+        if CLI.Argument_count > 1 then
+            add_new_album_cmd(root_album_set);
+         else
+            TIO.Put_Line("enter a an album tree path");
+        end if;
       else
          TIO.Put_Line("invalid command");
          CLI.Set_Exit_Status (CLI.Failure);   

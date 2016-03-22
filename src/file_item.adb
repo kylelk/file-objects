@@ -14,12 +14,14 @@ package body file_item is
    end get_path;
 
    procedure create (item : in out file_info; path : String) is
+      Sha1 : String (1 .. 40);
    begin
-      item.sha1      := file_sha1.get_file_sha1 (path);
-      item.Size      := Integer (Ada.Directories.Size (path));
+      Sha1              := file_sha1.get_file_sha1 (path);
+      item.sha1         := Sha1;
+      item.Size         := Integer (Ada.Directories.Size (path));
       item.Extension := To_Unbounded_String (Ada.Directories.Extension (path));
-      item.Added_At  := Ada.Calendar.Clock;
-      item.value_length := (item'Size)/8;
+      item.Added_At     := Ada.Calendar.Clock;
+      item.value_length := (item'Size) / 8;
 
       if not Ada.Directories.Exists (get_path (item)) then
          Ada.Directories.Copy_File (path, get_path (item));
@@ -30,10 +32,22 @@ package body file_item is
    begin
       null;
    end update;
-   
-   function get_by_sha1(sha1 : String) return file_info is
-      result : file_info;
+
+   function Exists (Sha1 : String) return Boolean is
+      Path : String :=
+        Format_Pathname
+          (config.object_dir &
+           "/" &
+           Sha1 (Sha1'First .. Sha1'First + 1) &
+           "/" &
+           Sha1);
    begin
-      return result;
-   end get_by_sha1;
+      return Ada.Directories.Exists (Path);
+   end Exists;
+
+--     function get_by_sha1(sha1 : String) return file_info is
+--        result : file_info;
+--     begin
+--        return result;
+--     end get_by_sha1;
 end file_item;

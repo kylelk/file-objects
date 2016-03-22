@@ -16,5 +16,5 @@ package body file_sha1 is
         File_String_IO.Close (File);
         GNAT.SHA1.Update(C, Contents);
         return GNAT.SHA1.Digest(C);
-    end get_file_sha1;
+   end get_file_sha1;
 end file_sha1;
