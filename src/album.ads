@@ -2,8 +2,10 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Unbounded_IO;
 with Ada.Text_IO;
+with Ada.Streams.Stream_IO;
 
 package album is
+   package STIO renames Ada.Streams.Stream_IO;
    use Ada.Strings.Unbounded;
    type Name_size is new Integer range 1 .. 255;
 
@@ -28,7 +30,7 @@ package album is
       name            :        Unbounded_String);
    procedure Update_Name_Length (Item : in out Album_Info);
    package Album_Set is new Ada.Containers.Ordered_Sets (Album_Info);
-   procedure Save_Albums (Album_Items : Album_Set.Set);
+   procedure Save_Albums (Album_Items : in out Album_Set.Set; path : String);
    procedure Print_Tree (Album_Items : Album_Set.Set);
 
 private

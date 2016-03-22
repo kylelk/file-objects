@@ -40,9 +40,23 @@ package body album is
       item.name_length := Name_size (Length (item.name));
    end update_name_length;
 
-   procedure save_albums (album_items : album_set.Set) is
+   procedure save_albums (Album_Items : in out Album_Set.Set; path : String) is
+      File_Handle : STIO.File_Type;
+      Data_Stream : STIO.Stream_Access;
+      Set_Cursor : Album_Set.Cursor := Album_Set.First(Album_Items);
+      temp_item : Album_Info;
    begin
-      null;
+      for I in 1..(Album_Set.Length(Album_Items)) loop
+         temp_item := Album_Set.Element(set_cursor);
+         update_name_length(temp_item);
+         album_set.Replace(Album_Items, temp_item);
+         album_set.Next(set_cursor);
+      end loop;
+   
+      STIO.Open(File_Handle, STIO.Out_File, path);
+      Data_Stream := STIO.Stream(File_Handle);
+      Album_Set.Set'Write(Data_Stream, Album_Items);
+      STIO.Close(File_Handle);
    end save_albums;
 
    procedure Print_Tree(Album_Items : Album_Set.Set) is
