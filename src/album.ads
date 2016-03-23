@@ -35,7 +35,6 @@ package album is
     is (Namespace_Map.Contains(Map, UBS.To_Unbounded_String(Key)));
     
    
-
    type Album_Info is tagged record
       -- SHA-1 of the album entries file
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;

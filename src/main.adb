@@ -6,6 +6,8 @@ with Ada.Characters.Handling;
 with GNAT.Directory_Operations;
 with Ada.IO_Exceptions;
 with Ada.Command_Line;
+with Ada.Strings.Unbounded;
+with Ada.Text_IO.Unbounded_IO;
 
 -- project imports
 with config;
@@ -26,6 +28,7 @@ procedure main is
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
+   package UBS renames Ada.Strings.Unbounded;
    
    root_album_set : Album_Set.Set;
    Project_Status : status.Status_Map.Map;
@@ -213,19 +216,40 @@ procedure main is
               Item => "cannot find namespace: " & Name);
       end;
    end Remove_Namespace;
+
    
+    procedure Change_Namespace
+     (Map  : album.Namespace_Map.Map;
+      Name : String) is 
+    begin
+        if album.Contains(Map, Name) then
+            status.Set(Project_Status, "current_namespace", Name);
+            TIO.Put_Line("changed to namespace: " & Name);
+        else
+            TIO.Put_Line
+              (File => Standard_Error,
+              Item => "cannot find namespace: " & Name);
+        end if;
+    end Change_Namespace;
+
    
    procedure Edit_Namespace_Cmd(Map : in out album.Namespace_Map.Map) is
+    current_namespace : UBS.Unbounded_String;
    begin
       if CLI.Argument_Count = 2 then
             if CLI.Argument (2) = "list" then
                Display_Namespaces (Map);
+            elsif CLI.Argument(2) = "current" then
+                status.Get(Project_Status, "current_namespace", current_namespace);
+                Ada.Text_IO.Unbounded_IO.Put_Line(current_namespace);
             end if;
          elsif CLI.Argument_Count > 1 then
             if CLI.Argument (2) = "new" then
                Add_Namespace (Map, CLI.Argument (3));
             elsif CLI.Argument(2) = "remove" then
                 Remove_Namespace(Map, CLI.Argument(3));
+            elsif CLI.Argument(2) = "change" then
+                Change_Namespace(Map, CLI.Argument(3));
             end if;
          else
             TIO.Put_Line
