@@ -1,17 +1,21 @@
 with Ada.Directories;
 with GNAT.Directory_Operations;
-with config;
-
-with file_sha1;
 
 package body file_item is
    use GNAT.Directory_Operations;
 
-   function get_path (item : file_info) return String is
+   function Get_Path (Item : File_Info) return String is
+   begin
+      return Get_Path(Item.sha1);
+   end get_path;
+
+
+   function Get_Path (Sha1 : File_Sha1.Sha1_Value) return String is
    begin
       return Format_Pathname
-          (config.object_dir & "/" & item.sha1 (1 .. 2) & "/" & item.sha1);
+          (config.object_dir & "/" & Sha1 (1 .. 2) & "/" & Sha1);
    end get_path;
+
 
    procedure create (item : in out file_info; path : String) is
       Sha1 : String (1 .. 40);
@@ -33,7 +37,7 @@ package body file_item is
       null;
    end update;
 
-   function Exists (Sha1 : String) return Boolean is
+   function Exists (Sha1 : File_Sha1.Sha1_value) return Boolean is
       Path : String :=
         Format_Pathname
           (config.object_dir &

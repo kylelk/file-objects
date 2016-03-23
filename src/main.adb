@@ -149,12 +149,16 @@ procedure main is
       end;
    end add_new_album_cmd;
    
+   Album_Namespaces : Album.Namespace_Map.Map;
 begin
 
    create_directories;
    create_files;
    
-   album.Load_Albums(root_album_set, config.album_refs_file);
+   -- album.Load_Albums(root_album_set, config.album_refs_file);
+   
+   
+   
    
    if CLI.Argument_count < 1 then
       config.display_help;
