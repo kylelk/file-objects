@@ -32,10 +32,12 @@ package body file_item is
       end if;
    end create;
 
+
    procedure update (item : in out file_info) is
    begin
       null;
    end update;
+
 
    function Exists (Sha1 : File_Sha1.Sha1_value) return Boolean is
       Path : String :=

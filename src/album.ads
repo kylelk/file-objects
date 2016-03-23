@@ -31,6 +31,10 @@ package album is
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
    procedure Display_Namespaces(Map : Namespace_Map.Map);
+   function Contains (Map : Namespace_Map.Map; Key : String) return Boolean 
+    is (Namespace_Map.Contains(Map, UBS.To_Unbounded_String(Key)));
+    
+   
 
    type Album_Info is tagged record
       -- SHA-1 of the album entries file

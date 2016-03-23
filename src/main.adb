@@ -12,8 +12,8 @@ with config;
 with file_item;
 with album;
 with file_operations;
-with file_item;
 with File_Sha1;
+with status;
 
 procedure main is
    use Ada.Directories;
@@ -26,9 +26,9 @@ procedure main is
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
-
    
    root_album_set : Album_Set.Set;
+   Project_Status : status.Status_Map.Map;
 
 
    function Integer2Hexa
@@ -77,6 +77,7 @@ procedure main is
    procedure create_files is
    begin
       file_operations.create_empty_file (config.album_refs_file);
+      file_operations.create_empty_file (config.status_file);
       -- create a blank object
       file_operations.create_empty_file(file_item.get_path(file_sha1.Empty_Sha1));
    end create_files;
@@ -162,11 +163,15 @@ procedure main is
       album.Load (Album_Namespaces, config.album_refs_file);
       begin
          album.Create (Album_Namespaces, config.Default_Album_Namespace);
-         -- album.Save (Album_Namespaces, config.album_refs_file);
+         album.Save (Album_Namespaces, config.album_refs_file);
       exception
          when Constraint_Error =>
             null;
       end;
+      
+      if not status.Contains(Project_Status, "current_namespace") then
+        status.Set(Project_Status, "current_namespace", config.Default_Album_Namespace);
+      end if;
    end Create_Default_Namespace;
 
 
@@ -230,13 +235,14 @@ procedure main is
    end Edit_Namespace_Cmd;
    
    Album_Namespaces : album.Namespace_Map.Map;
-   
+
 begin
 
    create_directories;
    create_files;
-
+   status.Load(Project_Status, config.status_file);
    Create_Default_Namespace;
+   
    album.Load (Album_Namespaces, config.album_refs_file);
 
    if CLI.Argument_Count < 1 then
@@ -272,6 +278,8 @@ begin
    end if;
 
    Save (Album_Namespaces, config.album_refs_file);
+   
+   status.Save(Project_Status, config.status_file);
 
    -- clean up any temporary files or directories
    clear_temp_dir;
