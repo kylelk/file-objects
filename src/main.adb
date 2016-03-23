@@ -259,7 +259,8 @@ procedure main is
    end Edit_Namespace_Cmd;
    
    Album_Namespaces : album.Namespace_Map.Map;
-
+   current_namespace_pointer : File_Sha1.Sha1_value;
+   current_namespace_name : UBS.Unbounded_String;
 begin
 
    create_directories;
@@ -268,6 +269,11 @@ begin
    Create_Default_Namespace;
    
    album.Load (Album_Namespaces, config.album_refs_file);
+   
+   status.Get(Project_Status, "current_namespace", current_namespace_name);
+   
+   current_namespace_pointer := album.Namespace_Pointer(Album_Namespaces, current_namespace_name);
+   album.Load_Albums(root_album_set, file_item.get_path(current_namespace_pointer));
 
    if CLI.Argument_Count < 1 then
       config.display_help;

@@ -73,7 +73,15 @@ package body album is
          Namespace_Map.Next (Map_Cursor);
       end loop;
    end Display_Namespaces;
-
+   
+   
+   function Namespace_Pointer
+   (Map : Namespace_Map.Map; 
+    Name : UBS.Unbounded_String) return file_sha1.Sha1_value is
+    begin
+        return Namespace_Map.Element(Map, Name);
+   end Namespace_Pointer;
+   
 
    procedure Create
      (item            : in out Album_Info;

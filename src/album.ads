@@ -31,6 +31,7 @@ package album is
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
    procedure Display_Namespaces(Map : Namespace_Map.Map);
+   function Namespace_Pointer(Map : Namespace_Map.Map; Name : UBS.Unbounded_String) return file_sha1.Sha1_value;
    function Contains (Map : Namespace_Map.Map; Key : String) return Boolean 
     is (Namespace_Map.Contains(Map, UBS.To_Unbounded_String(Key)));
     
@@ -40,7 +41,7 @@ package album is
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
       -- SHA-1 of the children album entries file
       Children_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
-      Name : UBS.Unbounded_String; -- := (others=> ' ');
+      Name : UBS.Unbounded_String;
    end record;
 
    function "<" (a, b : Album_Info) return Boolean;
