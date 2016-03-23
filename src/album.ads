@@ -31,6 +31,7 @@ package album is
 
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
+   procedure Display_Namespaces(Map : Namespace_Map.Map);
 
    type Album_Info is tagged record
       -- SHA-1 of the album entries file

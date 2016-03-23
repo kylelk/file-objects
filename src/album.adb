@@ -42,8 +42,13 @@ package body album is
    begin
       STIO.Open (File_Handle, STIO.In_File, Path);
       Data_Stream := STIO.Stream (File_Handle);
-      Namespace_Map.Map'Read (Data_Stream, Map);
-      Ada.Text_IO.Put_Line("read from stream");
+
+      begin
+         Namespace_Map.Map'Read (Data_Stream, Map);
+      exception
+         when Ada.IO_Exceptions.End_Error => null;
+      end;
+
       STIO.Close (File_Handle);
    end Load;
 
@@ -58,6 +63,16 @@ package body album is
       Namespace_Map.Map'Write (Data_Stream, Map);
       STIO.Close (File_Handle);
    end Save;
+
+
+   procedure Display_Namespaces(Map : Namespace_Map.Map) is
+      Map_Cursor : Namespace_Map.Cursor := Namespace_Map.First(Map);
+   begin
+      for I in 1 .. (Namespace_Map.Length (Map)) loop
+         Ada.Text_IO.Unbounded_IO.Put_Line(Namespace_Map.Key(Map_Cursor));
+         Namespace_Map.Next (Map_Cursor);
+      end loop;
+   end Display_Namespaces;
 
 
    procedure Create

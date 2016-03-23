@@ -20,13 +20,12 @@ procedure main is
    --use GNAT.Directory_Operations;
    use file_item;
    use album;
-   
+
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
-   
-   root_album_set : Album_Set.Set;
 
+   root_album_set : Album_Set.Set;
 
    function Integer2Hexa
      (Hex_Int : Integer;
@@ -47,146 +46,195 @@ procedure main is
       Result := To_Lower (Result);
       return Result;
    end Integer2Hexa;
-   
-   procedure Create_New_Dir(Name : String) is
+
+   procedure Create_New_Dir (Name : String) is
    begin
       if not Ada.Directories.Exists (Name) then
          Create_Directory (Name);
       end if;
    end Create_New_Dir;
-   
 
    procedure create_directories is
       prefix : String (1 .. 2);
    begin
-      Create_New_Dir(Config.project_dir);
-      Create_New_Dir(Config.object_dir);
-      Create_New_Dir(Config.Temp_Dir);
-      
+      Create_New_Dir (config.project_dir);
+      Create_New_Dir (config.object_dir);
+      Create_New_Dir (config.Temp_Dir);
+
       for I in 0 .. 255 loop
          prefix := Integer2Hexa (I);
-         Create_New_Dir(DIR_OPS.Format_Pathname (Config.object_dir & "/") & prefix);
+         Create_New_Dir
+           (DIR_OPS.Format_Pathname (config.object_dir & "/") & prefix);
       end loop;
    end create_directories;
-   
-   
+
    procedure create_files is
    begin
-      file_operations.create_empty_file(config.album_refs_file);
+      file_operations.create_empty_file (config.album_refs_file);
       -- create a blank object
-      file_operations.create_empty_file(DIR_OPS.Format_Pathname(config.object_dir & "/da/" & "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
+      file_operations.create_empty_file
+        (DIR_OPS.Format_Pathname
+           (config.object_dir &
+            "/da/" &
+            "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
    end create_files;
-   
-   
+
    procedure clear_temp_dir is
    begin
-      file_operations.remake_directory(config.Temp_Dir);
+      file_operations.remake_directory (config.Temp_Dir);
    end clear_temp_dir;
-   
-   
+
    procedure add_files is
       Search    : Search_Type;
       Dir_Ent   : Directory_Entry_Type;
       Directory : constant String := ".";
-      begin
-       Ada.Directories.Start_Search (Search, Directory, "");
-       while More_Entries (Search) loop
-          Ada.Directories.Get_Next_Entry (Search, Dir_Ent);
-          if Ada.Directories.Kind (Dir_Ent) =
-            Ada.Directories.File_Kind'(Ordinary_File)
-          then
-             add_file : declare
-                item : file_item.file_info;
-             begin
-                begin
-                   file_item.create (item, Simple_Name (Dir_Ent));
-                   TIO.Put_Line (item.sha1 & " " & Simple_Name (Dir_Ent));
-                exception
-                   -- file was empty
-                   when Ada.IO_Exceptions.End_Error => null;
-                end;
-             end add_file;
-          end if;
-       end loop;
-       Ada.Directories.End_Search (Search);
+   begin
+      Ada.Directories.Start_Search (Search, Directory, "");
+      while More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Dir_Ent);
+         if Ada.Directories.Kind (Dir_Ent) =
+           Ada.Directories.File_Kind'(Ordinary_File)
+         then
+            add_file : declare
+               item : file_item.file_info;
+            begin
+               begin
+                  file_item.create (item, Simple_Name (Dir_Ent));
+                  TIO.Put_Line (item.sha1 & " " & Simple_Name (Dir_Ent));
+               exception
+                  -- file was empty
+                  when Ada.IO_Exceptions.End_Error =>
+                     null;
+               end;
+            end add_file;
+         end if;
+      end loop;
+      Ada.Directories.End_Search (Search);
    end add_files;
-   
-   
+
    procedure test is
       items      : Album_Set.Set;
       album_item : Album_Info;
    begin
-      Create (Album_Item, "food");
-      Album_Set.Insert (Items, Album_Item);
-      
-      Create (Album_Item, "animal");
-      Album_Set.Insert (Items, Album_Item);
-      
-      Create (Album_Item, "movie");
-      Album_Set.Insert (Items, Album_Item);
-      
-      Create (Album_Item, "TV show");
-      Album_Set.Insert (Items, Album_Item);
-      
+      Create (album_item, "food");
+      Album_Set.Insert (items, album_item);
+
+      Create (album_item, "animal");
+      Album_Set.Insert (items, album_item);
+
+      Create (album_item, "movie");
+      Album_Set.Insert (items, album_item);
+
+      Create (album_item, "TV show");
+      Album_Set.Insert (items, album_item);
+
       album.Print_Tree (items);
       --album.Save_Albums(items, config.album_refs_file);
    end test;
-   
-   procedure add_new_album_cmd(items : in out Album_Set.Set) is
+
+   procedure add_new_album_cmd (items : in out Album_Set.Set) is
       temp_album : Album_Info;
    begin
       begin
-         album.Create(temp_album, CLI.Argument(2));
-         for I in 2..CLI.Argument_Count loop
-            TIO.Put_Line("- " & CLI.Argument(I));
+         album.Create (temp_album, CLI.Argument (2));
+         for I in 2 .. CLI.Argument_Count loop
+            TIO.Put_Line ("- " & CLI.Argument (I));
          end loop;
-         
+
          -- Album_Set.Insert (Items, temp_album);
          -- album.Save_Albums(items, config.album_refs_file);
          -- TIO.Put_Line("added new album");
-      exception when CONSTRAINT_ERROR =>
-         TIO.Put_Line(File => Standard_Error, Item => "duplicate album");
+      exception
+         when Constraint_Error =>
+            TIO.Put_Line (File => Standard_Error, Item => "duplicate album");
       end;
    end add_new_album_cmd;
-   
-   Album_Namespaces : Album.Namespace_Map.Map;
+
+   procedure Create_Default_Namespace is
+      Album_Namespaces : album.Namespace_Map.Map;
+   begin
+      album.Load (Album_Namespaces, config.album_refs_file);
+      begin
+         album.Create (Album_Namespaces, config.Default_Album_Namespace);
+         album.Save (Album_Namespaces, config.album_refs_file);
+      exception
+         when Constraint_Error =>
+            null;
+      end;
+   end Create_Default_Namespace;
+
+   procedure Add_Namespace
+     (Map  : in out album.Namespace_Map.Map;
+      Name :        String)
+   is
+   begin
+      begin
+         album.Create (Map, config.Default_Album_Namespace);
+      exception
+         when Constraint_Error =>
+            TIO.Put_Line
+              (File => Standard_Error,
+               Item => "namespace already exists");
+      end;
+
+   end Add_Namespace;
+
+   Album_Namespaces : album.Namespace_Map.Map;
 begin
 
    create_directories;
    create_files;
-   
-   Album.Load(Album_Namespaces, Config.album_refs_file);
-   Album.Create(Album_Namespaces, Config.Default_Album_Namespace);
-   Album.Save(Album_Namespaces, Config.album_refs_file);
-   
-   
-   -- album.Load_Albums(root_album_set, config.album_refs_file);
-   
-   if CLI.Argument_count < 1 then
+
+   Create_Default_Namespace;
+   album.Load (Album_Namespaces, config.album_refs_file);
+
+   if CLI.Argument_Count < 1 then
       config.display_help;
       CLI.Set_Exit_Status (CLI.Failure);
    else
-   
-      if CLI.Argument(1) = "help" then
+
+      if CLI.Argument (1) = "help" then
          config.display_help;
-      elsif CLI.Argument(1) = "add" then
+
+      elsif CLI.Argument (1) = "add" then
          add_files;
-      elsif CLI.Argument(1) = "test" then
+
+      elsif CLI.Argument (1) = "test" then
          test;
-      elsif CLI.Argument(1) = "tree" then
-         album.Print_Tree(root_album_set);
-      elsif CLI.Argument(1) = "new" then
-        if CLI.Argument_count > 1 then
-            add_new_album_cmd(root_album_set);
+
+      elsif CLI.Argument (1) = "tree" then
+         album.Print_Tree (root_album_set);
+
+      elsif CLI.Argument (1) = "new" then
+         if CLI.Argument_Count > 1 then
+            add_new_album_cmd (root_album_set);
          else
-            TIO.Put_Line("enter a an album tree path");
-        end if;
+            TIO.Put_Line ("enter a an album tree path");
+         end if;
+
+      elsif CLI.Argument (1) = "namespace" then
+         if CLI.Argument_Count = 2 then
+            if CLI.Argument (2) = "list" then
+               Display_Namespaces (Album_Namespaces);
+            end if;
+         elsif CLI.Argument_Count > 1 then
+            if CLI.Argument (2) = "new" then
+               TIO.Put_Line(CLI.Argument(3));
+               Add_Namespace (Album_Namespaces, CLI.Argument (3));
+            end if;
+         else
+            TIO.Put_Line
+              (File => Standard_Error,
+               Item => "enter a namespace operation");
+         end if;
       else
-         TIO.Put_Line("invalid command");
-         CLI.Set_Exit_Status (CLI.Failure);   
+         TIO.Put_Line ("invalid command");
+         CLI.Set_Exit_Status (CLI.Failure);
       end if;
    end if;
-   
+
+   Save (Album_Namespaces, config.album_refs_file);
+
    -- clean up any temporary files or directories
    clear_temp_dir;
 end main;
