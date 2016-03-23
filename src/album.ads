@@ -3,18 +3,15 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
+with Ada.Text_IO.Unbounded_IO;
+with Ada.Strings.Fixed;
+with Ada.IO_Exceptions;
 
 with file_sha1;
 
 package album is
    package STIO renames Ada.Streams.Stream_IO;
    package UBS renames Ada.Strings.Unbounded;
-
-   -- subtype Sha1_value is String(1..40);
-
-   Empty_Sha1 : constant file_sha1.Sha1_value :=
-     "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-
    use UBS;
 
    package Namespace_Map is new Ada.Containers.Ordered_Maps
@@ -28,18 +25,18 @@ package album is
    procedure Create
      (Map  : in out Namespace_Map.Map;
       Name :        String);
-
+      
+    
+   procedure Remove(Map  : in out Namespace_Map.Map; Name : String);
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
    procedure Display_Namespaces(Map : Namespace_Map.Map);
 
    type Album_Info is tagged record
       -- SHA-1 of the album entries file
-      Entries_Pointer : file_sha1.Sha1_value :=
-        "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+      Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
       -- SHA-1 of the children album entries file
-      Children_Pointer : file_sha1.Sha1_value :=
-        "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+      Children_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
       Name : UBS.Unbounded_String; -- := (others=> ' ');
    end record;
 

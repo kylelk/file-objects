@@ -1,12 +1,4 @@
-with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO.Unbounded_IO;
-with Ada.Text_IO;
-with Ada.Strings.Fixed;
-with Ada.IO_Exceptions;
-
 package body album is
-   use Ada.Strings.Unbounded;
 
    function "<" (a, b : Album_Info) return Boolean is
    begin
@@ -24,7 +16,7 @@ package body album is
       Name :        UBS.Unbounded_String)
    is
    begin
-      Namespace_Map.Insert (Map, Name, album.Empty_Sha1);
+      Namespace_Map.Insert (Map, Name, file_sha1.Empty_Sha1);
    end Create;
 
 
@@ -34,6 +26,14 @@ package body album is
    begin
       Create(Map, UBS.To_Unbounded_String(name));
    end Create;
+   
+   
+   procedure Remove(Map : in out Namespace_Map.Map; Name : String) is
+      Result_Cursor : Namespace_Map.Cursor;
+   begin
+      Result_Cursor := Namespace_Map.Find(Map, UBS.To_Unbounded_String(Name));
+      Namespace_Map.Delete(Map, Result_Cursor);
+   end Remove;
 
 
    procedure Load (Map : out Namespace_Map.Map; Path : String) is

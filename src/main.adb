@@ -12,6 +12,8 @@ with config;
 with file_item;
 with album;
 with file_operations;
+with file_item;
+with File_Sha1;
 
 procedure main is
    use Ada.Directories;
@@ -25,7 +27,9 @@ procedure main is
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
 
+   
    root_album_set : Album_Set.Set;
+
 
    function Integer2Hexa
      (Hex_Int : Integer;
@@ -46,6 +50,7 @@ procedure main is
       Result := To_Lower (Result);
       return Result;
    end Integer2Hexa;
+
 
    procedure Create_New_Dir (Name : String) is
    begin
@@ -68,21 +73,20 @@ procedure main is
       end loop;
    end create_directories;
 
+
    procedure create_files is
    begin
       file_operations.create_empty_file (config.album_refs_file);
       -- create a blank object
-      file_operations.create_empty_file
-        (DIR_OPS.Format_Pathname
-           (config.object_dir &
-            "/da/" &
-            "da39a3ee5e6b4b0d3255bfef95601890afd80709"));
+      file_operations.create_empty_file(file_item.get_path(file_sha1.Empty_Sha1));
    end create_files;
+
 
    procedure clear_temp_dir is
    begin
       file_operations.remake_directory (config.Temp_Dir);
    end clear_temp_dir;
+
 
    procedure add_files is
       Search    : Search_Type;
@@ -112,6 +116,7 @@ procedure main is
       Ada.Directories.End_Search (Search);
    end add_files;
 
+
    procedure test is
       items      : Album_Set.Set;
       album_item : Album_Info;
@@ -132,6 +137,7 @@ procedure main is
       --album.Save_Albums(items, config.album_refs_file);
    end test;
 
+
    procedure add_new_album_cmd (items : in out Album_Set.Set) is
       temp_album : Album_Info;
    begin
@@ -140,7 +146,6 @@ procedure main is
          for I in 2 .. CLI.Argument_Count loop
             TIO.Put_Line ("- " & CLI.Argument (I));
          end loop;
-
          -- Album_Set.Insert (Items, temp_album);
          -- album.Save_Albums(items, config.album_refs_file);
          -- TIO.Put_Line("added new album");
@@ -150,36 +155,82 @@ procedure main is
       end;
    end add_new_album_cmd;
 
+
    procedure Create_Default_Namespace is
       Album_Namespaces : album.Namespace_Map.Map;
    begin
       album.Load (Album_Namespaces, config.album_refs_file);
       begin
          album.Create (Album_Namespaces, config.Default_Album_Namespace);
-         album.Save (Album_Namespaces, config.album_refs_file);
+         -- album.Save (Album_Namespaces, config.album_refs_file);
       exception
          when Constraint_Error =>
             null;
       end;
    end Create_Default_Namespace;
 
+
    procedure Add_Namespace
      (Map  : in out album.Namespace_Map.Map;
       Name :        String)
    is
    begin
-      begin
-         album.Create (Map, config.Default_Album_Namespace);
+       begin
+         album.Create (Map, Name);
+         TIO.Put_Line("created new namespace: " & Name);
       exception
          when Constraint_Error =>
             TIO.Put_Line
               (File => Standard_Error,
-               Item => "namespace already exists");
+              Item => "namespace already exists");
       end;
-
    end Add_Namespace;
-
+   
+   
+    procedure Remove_Namespace
+     (Map  : in out album.Namespace_Map.Map;
+      Name :        String)
+   is
+   begin
+       begin
+        if Name /= config.Default_Album_Namespace then
+            album.Remove (Map, Name);
+            TIO.Put_Line("removed namespace: " & Name);
+        else
+            TIO.Put_Line
+              (File => Standard_Error, 
+              Item => "cannot remove default namespace");
+        end if;    
+      exception
+         when Constraint_Error =>
+            TIO.Put_Line
+              (File => Standard_Error,
+              Item => "cannot find namespace: " & Name);
+      end;
+   end Remove_Namespace;
+   
+   
+   procedure Edit_Namespace_Cmd(Map : in out album.Namespace_Map.Map) is
+   begin
+      if CLI.Argument_Count = 2 then
+            if CLI.Argument (2) = "list" then
+               Display_Namespaces (Map);
+            end if;
+         elsif CLI.Argument_Count > 1 then
+            if CLI.Argument (2) = "new" then
+               Add_Namespace (Map, CLI.Argument (3));
+            elsif CLI.Argument(2) = "remove" then
+                Remove_Namespace(Map, CLI.Argument(3));
+            end if;
+         else
+            TIO.Put_Line
+              (File => Standard_Error,
+               Item => "enter a namespace operation");
+         end if;
+   end Edit_Namespace_Cmd;
+   
    Album_Namespaces : album.Namespace_Map.Map;
+   
 begin
 
    create_directories;
@@ -213,20 +264,7 @@ begin
          end if;
 
       elsif CLI.Argument (1) = "namespace" then
-         if CLI.Argument_Count = 2 then
-            if CLI.Argument (2) = "list" then
-               Display_Namespaces (Album_Namespaces);
-            end if;
-         elsif CLI.Argument_Count > 1 then
-            if CLI.Argument (2) = "new" then
-               TIO.Put_Line(CLI.Argument(3));
-               Add_Namespace (Album_Namespaces, CLI.Argument (3));
-            end if;
-         else
-            TIO.Put_Line
-              (File => Standard_Error,
-               Item => "enter a namespace operation");
-         end if;
+         Edit_Namespace_Cmd(Album_Namespaces);
       else
          TIO.Put_Line ("invalid command");
          CLI.Set_Exit_Status (CLI.Failure);
