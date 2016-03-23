@@ -1,38 +1,56 @@
 with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO.Unbounded_IO;
+with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO;
+with Ada.Streams.Stream_IO;
+with Ada.Strings.Unbounded;
+
+with File_Sha1;
 
 package album is
-   use Ada.Strings.Unbounded;
-   type Name_size is new Integer range 1 .. 255;
+   package STIO renames Ada.Streams.Stream_IO;
+   package UBS renames Ada.Strings.Unbounded;
+
+   -- subtype Sha1_value is String(1..40);
+
+   Empty_Sha1 : constant File_Sha1.Sha1_value := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+
+   use UBS;
+
+   package Namespace_Map is new Ada.Containers.Ordered_Maps(
+                                                            Key_Type=>UBS.Unbounded_String,
+                                                            Element_Type=>File_Sha1.Sha1_value
+                                                           );
+
+   procedure Create(Map : in out Namespace_Map.Map; Name : UBS.Unbounded_String);
+   procedure Load(Map : out Namespace_Map.Map; Path : String);
+   procedure Save(Map : in Namespace_Map.Map; Path : String);
 
    type Album_Info is tagged record
       -- SHA-1 of the album entries file
-      Entries_Pointer : String(1..40);
-      Name_Length     : Name_size;
-      Name            : Unbounded_String;
-      Children_Pointer : String(1..40);
+      Entries_Pointer  : File_Sha1.Sha1_value := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+      -- SHA-1 of the children album entries file
+      Children_Pointer : File_Sha1.Sha1_value := "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+      Name             : UBS.Unbounded_String; -- := (others=> ' ');
    end record;
 
    function "<" (a, b : Album_Info) return Boolean;
    function ">" (a, b : Album_Info) return Boolean;
+
    procedure Create
      (item            : in out Album_Info;
-      entries_pointer :        String;
+      entries_pointer :        File_Sha1.Sha1_value;
       name            :        String);
-   procedure Create
-     (item            : in out Album_Info;
-      entries_pointer :        String;
-      name            :        Unbounded_String);
-   procedure Update_Name_Length (Item : in out Album_Info);
+   procedure Create(item : in out Album_Info; name : String);
 
    package Album_Set is new Ada.Containers.Ordered_Sets (Album_Info);
-   procedure Save_Albums (Album_Items : Album_Set.Set);
 
-   procedure Print_Tree(Album_Items : Album_Set.Set);
+   procedure Save_Albums (Album_Items : in Album_Set.Set; path : String);
+   procedure Load_Albums(Album_Items : out Album_Set.Set; path : String);
+   procedure Print_Tree (Album_Items : Album_Set.Set);
 
 private
 
-   procedure Display_Album_Level(Album_Items : Album_Set.Set; Level : Integer);
+   procedure Display_Album_Level
+     (Album_Items : Album_Set.Set;
+      Level       : Integer);
 end album;

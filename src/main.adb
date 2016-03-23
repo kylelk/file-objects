@@ -129,7 +129,7 @@ procedure main is
       Album_Set.Insert (Items, Album_Item);
       
       album.Print_Tree (items);
-      album.Save_Albums(items, config.album_refs_file);
+      --album.Save_Albums(items, config.album_refs_file);
    end test;
    
    procedure add_new_album_cmd(items : in out Album_Set.Set) is
@@ -155,10 +155,12 @@ begin
    create_directories;
    create_files;
    
+   Album.Load(Album_Namespaces, Config.album_refs_file);
+   Album.Create(Album_Namespaces, Config.Default_Album_Namespace);
+   Album.Save(Album_Namespaces, Config.album_refs_file);
+   
+   
    -- album.Load_Albums(root_album_set, config.album_refs_file);
-   
-   
-   
    
    if CLI.Argument_count < 1 then
       config.display_help;

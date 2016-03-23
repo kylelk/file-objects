@@ -28,6 +28,14 @@ package body album is
    end Create;
 
 
+   procedure Create
+     (Map  : in out Namespace_Map.Map;
+      Name :        String) is
+   begin
+      Create(Map, UBS.To_Unbounded_String(name));
+   end Create;
+
+
    procedure Load (Map : out Namespace_Map.Map; Path : String) is
       File_Handle : STIO.File_Type;
       Data_Stream : STIO.Stream_Access;
@@ -35,6 +43,7 @@ package body album is
       STIO.Open (File_Handle, STIO.In_File, Path);
       Data_Stream := STIO.Stream (File_Handle);
       Namespace_Map.Map'Read (Data_Stream, Map);
+      Ada.Text_IO.Put_Line("read from stream");
       STIO.Close (File_Handle);
    end Load;
 
@@ -53,7 +62,7 @@ package body album is
 
    procedure Create
      (item            : in out Album_Info;
-      entries_pointer :        Sha1_value;
+      entries_pointer :        File_Sha1.Sha1_value;
       name            :        String)
    is
    begin
