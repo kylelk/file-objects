@@ -1,3 +1,8 @@
+with Ada.Text_IO.Unbounded_IO;
+with Ada.Strings.Fixed;
+with Ada.IO_Exceptions;
+with Ada.Text_IO;
+
 package body album is
 
    function "<" (a, b : Album_Info) return Boolean is
@@ -10,7 +15,6 @@ package body album is
       return a.Name < b.Name;
    end ">";
 
-
    procedure Create
      (Map  : in out Namespace_Map.Map;
       Name :        UBS.Unbounded_String)
@@ -19,22 +23,18 @@ package body album is
       Namespace_Map.Insert (Map, Name, file_sha1.Empty_Sha1);
    end Create;
 
-
-   procedure Create
-     (Map  : in out Namespace_Map.Map;
-      Name :        String) is
+   procedure Create (Map : in out Namespace_Map.Map; Name : String) is
    begin
-      Create(Map, UBS.To_Unbounded_String(name));
+      Create (Map, UBS.To_Unbounded_String (Name));
    end Create;
-   
-   
-   procedure Remove(Map : in out Namespace_Map.Map; Name : String) is
+
+   procedure Remove (Map : in out Namespace_Map.Map; Name : String) is
       Result_Cursor : Namespace_Map.Cursor;
    begin
-      Result_Cursor := Namespace_Map.Find(Map, UBS.To_Unbounded_String(Name));
-      Namespace_Map.Delete(Map, Result_Cursor);
+      Result_Cursor :=
+        Namespace_Map.Find (Map, UBS.To_Unbounded_String (Name));
+      Namespace_Map.Delete (Map, Result_Cursor);
    end Remove;
-
 
    procedure Load (Map : out Namespace_Map.Map; Path : String) is
       File_Handle : STIO.File_Type;
@@ -46,12 +46,12 @@ package body album is
       begin
          Namespace_Map.Map'Read (Data_Stream, Map);
       exception
-         when Ada.IO_Exceptions.End_Error => null;
+         when Ada.IO_Exceptions.End_Error =>
+            null;
       end;
 
       STIO.Close (File_Handle);
    end Load;
-
 
    procedure Save (Map : in Namespace_Map.Map; Path : String) is
       File_Handle : STIO.File_Type;
@@ -64,28 +64,26 @@ package body album is
       STIO.Close (File_Handle);
    end Save;
 
-
-   procedure Display_Namespaces(Map : Namespace_Map.Map) is
-      Map_Cursor : Namespace_Map.Cursor := Namespace_Map.First(Map);
+   procedure Display_Namespaces (Map : Namespace_Map.Map) is
+      Map_Cursor : Namespace_Map.Cursor := Namespace_Map.First (Map);
    begin
       for I in 1 .. (Namespace_Map.Length (Map)) loop
-         Ada.Text_IO.Unbounded_IO.Put_Line(Namespace_Map.Key(Map_Cursor));
+         Ada.Text_IO.Unbounded_IO.Put_Line (Namespace_Map.Key (Map_Cursor));
          Namespace_Map.Next (Map_Cursor);
       end loop;
    end Display_Namespaces;
-   
-   
+
    function Namespace_Pointer
-   (Map : Namespace_Map.Map; 
-    Name : UBS.Unbounded_String) return file_sha1.Sha1_value is
-    begin
-        return Namespace_Map.Element(Map, Name);
+     (Map  : Namespace_Map.Map;
+      Name : UBS.Unbounded_String) return file_sha1.Sha1_value
+   is
+   begin
+      return Namespace_Map.Element (Map, Name);
    end Namespace_Pointer;
-   
 
    procedure Create
      (item            : in out Album_Info;
-      entries_pointer :        File_Sha1.Sha1_value;
+      entries_pointer :        file_sha1.Sha1_value;
       name            :        String)
    is
    begin
@@ -93,18 +91,16 @@ package body album is
       Create (item, name);
    end Create;
 
-
    procedure Create (item : in out Album_Info; name : String) is
       use Ada.Strings.Fixed;
    begin
       item.Name := UBS.To_Unbounded_String (name);
    end Create;
 
-
    procedure Save_Albums (Album_Items : in Album_Set.Set; path : String) is
       File_Handle : STIO.File_Type;
       Data_Stream : STIO.Stream_Access;
-      Set_Cursor  : Album_Set.Cursor := Album_Set.First (Album_Items);
+      -- Set_Cursor  : Album_Set.Cursor := Album_Set.First (Album_Items);
    begin
       STIO.Create (File_Handle, STIO.Out_File, path);
       STIO.Reset (File_Handle);
@@ -112,7 +108,6 @@ package body album is
       Album_Set.Set'Write (Data_Stream, Album_Items);
       STIO.Close (File_Handle);
    end Save_Albums;
-
 
    procedure Load_Albums (Album_Items : out Album_Set.Set; path : String) is
       File_Handle : STIO.File_Type;
@@ -145,12 +140,10 @@ package body album is
       STIO.Close (File_Handle);
    end Load_Albums;
 
-
    procedure Print_Tree (Album_Items : Album_Set.Set) is
    begin
       Display_Album_Level (Album_Items, 0);
    end Print_Tree;
-
 
    procedure Display_Album_Level
      (Album_Items : Album_Set.Set;

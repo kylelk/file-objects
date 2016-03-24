@@ -1,11 +1,7 @@
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
-with Ada.Text_IO;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO.Unbounded_IO;
-with Ada.Strings.Fixed;
-with Ada.IO_Exceptions;
 
 with file_sha1;
 
@@ -22,26 +18,26 @@ package album is
      (Map  : in out Namespace_Map.Map;
       Name :        UBS.Unbounded_String);
 
-   procedure Create
-     (Map  : in out Namespace_Map.Map;
-      Name :        String);
-      
-    
-   procedure Remove(Map  : in out Namespace_Map.Map; Name : String);
+   procedure Create (Map : in out Namespace_Map.Map; Name : String);
+
+   procedure Remove (Map : in out Namespace_Map.Map; Name : String);
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
-   procedure Display_Namespaces(Map : Namespace_Map.Map);
-   function Namespace_Pointer(Map : Namespace_Map.Map; Name : UBS.Unbounded_String) return file_sha1.Sha1_value;
-   function Contains (Map : Namespace_Map.Map; Key : String) return Boolean 
-    is (Namespace_Map.Contains(Map, UBS.To_Unbounded_String(Key)));
-    
-   
+   procedure Display_Namespaces (Map : Namespace_Map.Map);
+   function Namespace_Pointer
+     (Map  : Namespace_Map.Map;
+      Name : UBS.Unbounded_String) return file_sha1.Sha1_value;
+   function Contains
+     (Map : Namespace_Map.Map;
+      Key : String) return Boolean is
+     (Namespace_Map.Contains (Map, UBS.To_Unbounded_String (Key)));
+
    type Album_Info is tagged record
       -- SHA-1 of the album entries file
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
       -- SHA-1 of the children album entries file
       Children_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
-      Name : UBS.Unbounded_String;
+      Name             : UBS.Unbounded_String;
    end record;
 
    function "<" (a, b : Album_Info) return Boolean;
