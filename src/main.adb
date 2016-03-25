@@ -6,8 +6,6 @@ with Ada.Characters.Handling;
 with GNAT.Directory_Operations;
 with Ada.IO_Exceptions;
 with Ada.Command_Line;
-with Ada.Strings.Unbounded;
-with Ada.Text_IO.Unbounded_IO;
 
 -- project imports
 with config;
@@ -28,7 +26,6 @@ procedure main is
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
-   package UBS renames Ada.Strings.Unbounded;
 
    root_album_set : Album_Set.Set;
    Project_Status : Status.Status_Map.Map;
@@ -63,21 +60,21 @@ procedure main is
    procedure create_directories is
       prefix : String (1 .. 2);
    begin
-      Create_New_Dir (config.project_dir);
-      Create_New_Dir (config.object_dir);
+      Create_New_Dir (config.Project_Dir);
+      Create_New_Dir (config.Object_Dir);
       Create_New_Dir (config.Temp_Dir);
 
       for I in 0 .. 255 loop
          prefix := Integer2Hexa (I);
          Create_New_Dir
-           (DIR_OPS.Format_Pathname (config.object_dir & "/") & prefix);
+           (DIR_OPS.Format_Pathname (config.Object_Dir & "/") & prefix);
       end loop;
    end create_directories;
 
    procedure create_files is
    begin
-      file_operations.create_empty_file (config.album_refs_file);
-      file_operations.create_empty_file (config.status_file);
+      file_operations.create_empty_file (config.Album_Refs_File);
+      file_operations.create_empty_file (config.Status_File);
       -- create a blank object
       file_operations.create_empty_file
         (file_item.get_path (file_sha1.Empty_Sha1));
@@ -118,9 +115,10 @@ procedure main is
 
    procedure test is
       items      : Album_Set.Set;
+      Entries : Album_Table;
       album_item : Album_Info;
    begin
-      Create (album_item, "food");
+      Add_Album(Entries, Project_Status, "food",);
       Album_Set.Insert (items, album_item);
 
       Create (album_item, "animal");
@@ -157,21 +155,16 @@ procedure main is
    procedure Create_Default_Namespace is
       Album_Namespaces : album.Namespace_Map.Map;
    begin
-      album.Load (Album_Namespaces, config.album_refs_file);
+      album.Load (Album_Namespaces, config.Album_Refs_File);
       begin
          album.Create (Album_Namespaces, config.Default_Album_Namespace);
-         album.Save (Album_Namespaces, config.album_refs_file);
+         album.Save (Album_Namespaces, config.Album_Refs_File);
       exception
          when Constraint_Error =>
             null;
       end;
 
-      if not Status.Contains (Project_Status, "current_namespace") then
-         Status.Set
-           (Project_Status,
-            "current_namespace",
-            config.Default_Album_Namespace);
-      end if;
+      Status.Set_Default_Value(Project_Status, "current_namespace", Config.Default_Album_Namespace);
    end Create_Default_Namespace;
 
    procedure Add_Namespace
@@ -225,17 +218,13 @@ procedure main is
    end Change_Namespace;
 
    procedure Edit_Namespace_Cmd (Map : in out album.Namespace_Map.Map) is
-      current_namespace : UBS.Unbounded_String;
    begin
       if CLI.Argument_Count = 2 then
          if CLI.Argument (2) = "list" then
             Display_Namespaces (Map);
          elsif CLI.Argument (2) = "current" then
-            Status.Get
-              (Project_Status,
-               "current_namespace",
-               current_namespace);
-            Ada.Text_IO.Unbounded_IO.Put_Line (current_namespace);
+
+            TIO.Put_Line (Status.Get (Project_Status, "current_namespace"));
          end if;
       elsif CLI.Argument_Count > 1 then
          if CLI.Argument (2) = "new" then
@@ -259,13 +248,15 @@ begin
 
    create_directories;
    create_files;
-   Status.Load (Project_Status, config.status_file);
+   Status.Load (Project_Status, config.Status_File);
    Create_Default_Namespace;
+   Status.Set_Default_Value(Project_Status, "sha1_seed", File_Sha1.Empty_Sha1);
 
-   album.Load (Album_Namespaces, config.album_refs_file);
-
-   Status.Get (Project_Status, "current_namespace", current_namespace_name);
-
+   album.Load (Album_Namespaces, config.Album_Refs_File);
+   current_namespace_name :=
+     UBS.To_Unbounded_String
+       (Status.Get (Project_Status, "current_namespace"));
+   
    current_namespace_pointer :=
      album.Namespace_Pointer (Album_Namespaces, current_namespace_name);
    album.Load_Albums
@@ -298,16 +289,16 @@ begin
 
       elsif CLI.Argument (1) = "namespace" then
          Edit_Namespace_Cmd (Album_Namespaces);
+         null;
       else
          TIO.Put_Line ("invalid command");
          CLI.Set_Exit_Status (CLI.Failure);
       end if;
    end if;
 
-   Save (Album_Namespaces, config.album_refs_file);
+   Save (Album_Namespaces, config.Album_Refs_File);
 
-   Status.Save (Project_Status, config.status_file);
-
+   Status.Save (Project_Status, config.Status_File);
    -- clean up any temporary files or directories
    clear_temp_dir;
 end main;

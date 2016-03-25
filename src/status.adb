@@ -1,4 +1,5 @@
 with Ada.IO_Exceptions;
+with Ada.Streams;
 
 package body Status is
     function Hash (Key : UBS.Unbounded_String) return Ada.Containers.Hash_Type is 
@@ -33,75 +34,37 @@ package body Status is
       STIO.Close (File_Handle);
    end Save;
    
-    
-    procedure Set(Map : in out Status_Map.Map; Key : String; Value : String) is
-        Item : Status_Entry;
-    begin
-        Item := (Value_Type => String_Value, Value => UBS.To_Unbounded_String(Value));
-        Save_Entry(Map, Key, Item);
-    end Set;
-    
-    
-    procedure Set(Map : in out Status_Map.Map; Key : String; Value : UBS.Unbounded_String) is
-          Item : Status_Entry;
-    begin
-        Item := (Value_Type => String_Value, Value => Value);
-        Save_Entry(Map, Key, Item);
-    end Set;
-    
-    
-    procedure Set(Map : in out Status_Map.Map; Key : String; Value : Integer) is
-    begin
-        Set(Map, key, Integer'Image(Value));
-    end Set;
-    
-    
-    procedure Set(Map : in out Status_Map.Map; Key : String; Value : Boolean) is
-    begin
-        Set(Map, key, Boolean'Image(Value));
-    end Set;
-    
-    procedure Get(Map : Status_Map.Map; Key : String; Result : out String) is
-        item : Status_Entry;
-    begin
-        Item := Status_Map.Element(Map, UBS.To_Unbounded_String(key));
-        Result := UBS.To_String(Item.Value);
-    end Get;
-    
-    
-    procedure Get(Map : Status_Map.Map; Key : String; Result : out UBS.Unbounded_String) is
-        item : Status_Entry;
-    begin
-        Item := Status_Map.Element(Map, UBS.To_Unbounded_String(key));
-        Result := Item.Value;
-    end Get;
-    
-    
-    procedure Get(Map : Status_Map.Map; Key : String; Result : out Integer) is 
-        item : Status_Entry;
-    begin
-        Item := Status_Map.Element(Map, UBS.To_Unbounded_String(key));
-        Result := Integer'Value(UBS.To_String(Item.Value));
-    end Get;
-    
-    
-    procedure Get(Map : Status_Map.Map; Key : String; Result : out Boolean) is
-        item : Status_Entry;
-    begin
-        Item := Status_Map.Element(Map, UBS.To_Unbounded_String(key));
-        Result := Boolean'Value(UBS.To_String(Item.Value));
-    end Get;
-    
-    
-    procedure Save_Entry(Map : in out Status_Map.Map; Key : String; Item : Status_Entry) is
-        Key_Name : constant UBS.Unbounded_String := UBS.To_Unbounded_String(Key);
-        Result_Cursor : Status_Map.Cursor;
-    begin
-        if Status_Map.Contains(Map, Key_Name) then
+   procedure Set(Map : in out Status_Map.Map; Key : String; Value : String) is
+   begin
+      Set(Map, Key, UBS.To_Unbounded_String(Value));
+   end Set;
+   
+   
+   procedure Set(Map : in out Status_Map.Map; Key : String; Value : UBS.Unbounded_String) is
+      Key_Name : constant UBS.Unbounded_String := UBS.To_Unbounded_String(Key);
+      Result_Cursor : Status_Map.Cursor;
+   begin
+       if Status_Map.Contains(Map, Key_Name) then
             Result_Cursor := Status_Map.Find(Map, Key_Name);
-            Status_Map.Replace_Element(Map, Result_Cursor, Item);
+            Status_Map.Replace_Element(Map, Result_Cursor, Value);
         else
-            Status_Map.Insert(Map, Key_Name, Item);
+            Status_Map.Insert(Map, Key_Name, Value);
         end if;
-    end Save_Entry;
+   end Set;
+   
+   function Get(Map : Status_Map.Map; Key : String) return String is
+      Key_Name : constant UBS.Unbounded_String := UBS.To_Unbounded_String(Key);
+   begin
+      return UBS.To_String(Status_Map.Element(Map, Key_Name));
+   end Get;
+   
+   procedure Set_Default_Value(Map : in out Status_Map.Map; Key : String; Value : String) is
+      Key_Name : constant UBS.Unbounded_String := UBS.To_Unbounded_String(Key);
+   begin
+      if not Status_Map.Contains(Map, Key_Name) then
+         Set(Map, Key, Value);
+      end if;
+   end Set_Default_Value;
+
+   
 end Status;

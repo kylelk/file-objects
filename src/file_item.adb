@@ -1,5 +1,6 @@
 with Ada.Directories;
 with GNAT.Directory_Operations;
+with config;
 
 package body file_item is
    use GNAT.Directory_Operations;
@@ -40,15 +41,13 @@ package body file_item is
 
 
    function Exists (Sha1 : File_Sha1.Sha1_value) return Boolean is
-      Path : String :=
-        Format_Pathname
+   begin
+      return Ada.Directories.Exists (Format_Pathname
           (config.object_dir &
            "/" &
            Sha1 (Sha1'First .. Sha1'First + 1) &
            "/" &
-           Sha1);
-   begin
-      return Ada.Directories.Exists (Path);
+           Sha1));
    end Exists;
 
 --     function get_by_sha1(sha1 : String) return file_info is

@@ -4,6 +4,7 @@ with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 
 with file_sha1;
+with Status;
 
 package album is
    package STIO renames Ada.Streams.Stream_IO;
@@ -17,13 +18,12 @@ package album is
    procedure Create
      (Map  : in out Namespace_Map.Map;
       Name :        UBS.Unbounded_String);
-
    procedure Create (Map : in out Namespace_Map.Map; Name : String);
-
    procedure Remove (Map : in out Namespace_Map.Map; Name : String);
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
    procedure Display_Namespaces (Map : Namespace_Map.Map);
+
    function Namespace_Pointer
      (Map  : Namespace_Map.Map;
       Name : UBS.Unbounded_String) return file_sha1.Sha1_value;
@@ -43,14 +43,18 @@ package album is
    function "<" (a, b : Album_Info) return Boolean;
    function ">" (a, b : Album_Info) return Boolean;
 
-   procedure Create
-     (item            : in out Album_Info;
-      entries_pointer :        file_sha1.Sha1_value;
-      name            :        String);
-   procedure Create (item : in out Album_Info; name : String);
-
    package Album_Set is new Ada.Containers.Ordered_Sets (Album_Info);
 
+   type Album_Table is tagged record
+      Unique_Id      : file_sha1.Sha1_value;
+      Parent_Pointer : file_sha1.Sha1_value;
+      Entries        : Album_Set.Set;
+   end record;
+
+   procedure Add_Album
+     (Table : in out Album_Table;
+      Stat  : in out Status.Status_Map.Map;
+      Name  :        String);
    procedure Save_Albums (Album_Items : in Album_Set.Set; path : String);
    procedure Load_Albums (Album_Items : out Album_Set.Set; path : String);
    procedure Print_Tree (Album_Items : Album_Set.Set);

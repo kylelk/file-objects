@@ -81,26 +81,20 @@ package body album is
       return Namespace_Map.Element (Map, Name);
    end Namespace_Pointer;
 
-   procedure Create
-     (item            : in out Album_Info;
-      entries_pointer :        file_sha1.Sha1_value;
-      name            :        String)
+   procedure Add_Album
+     (Table : in out Album_Table;
+      Stat  : in out Status.Status_Map.Map;
+      Name  :        String);
    is
+      Item : Album_Info;
    begin
-      item.Entries_Pointer := entries_pointer;
-      Create (item, name);
-   end Create;
-
-   procedure Create (item : in out Album_Info; name : String) is
-      use Ada.Strings.Fixed;
-   begin
-      item.Name := UBS.To_Unbounded_String (name);
-   end Create;
+      Item.Name := UBS.To_Unbounded_String (Name);
+   end Add_Album;
 
    procedure Save_Albums (Album_Items : in Album_Set.Set; path : String) is
       File_Handle : STIO.File_Type;
       Data_Stream : STIO.Stream_Access;
-      -- Set_Cursor  : Album_Set.Cursor := Album_Set.First (Album_Items);
+   -- Set_Cursor  : Album_Set.Cursor := Album_Set.First (Album_Items);
    begin
       STIO.Create (File_Handle, STIO.Out_File, path);
       STIO.Reset (File_Handle);
