@@ -3,8 +3,8 @@ with GNAT.SHA1;
 with Ada.Directories;
 
 package body file_sha1 is
-   function get_file_sha1 (file_name : String) return String is
-      File_Size : Natural := Natural (Ada.Directories.Size (file_name));
+   function get_file_sha1 (file_name : String) return Sha1_value is
+      File_Size : constant Natural := Natural (Ada.Directories.Size (file_name));
       C         : GNAT.SHA1.Context;
       subtype File_String is String (1 .. File_Size);
       package File_String_IO is new Ada.Direct_IO (File_String);

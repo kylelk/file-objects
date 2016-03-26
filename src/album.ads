@@ -1,7 +1,8 @@
-with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Multiway_Trees;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Fixed;
 
 with file_sha1;
 with Status;
@@ -9,7 +10,10 @@ with Status;
 package album is
    package STIO renames Ada.Streams.Stream_IO;
    package UBS renames Ada.Strings.Unbounded;
+   package Fixed_Str renames Ada.Strings.Fixed;
    use UBS;
+
+   type Album_Path is array (Positive range <>) of UBS.Unbounded_String;
 
    package Namespace_Map is new Ada.Containers.Ordered_Maps
      (Key_Type     => UBS.Unbounded_String,
@@ -31,38 +35,30 @@ package album is
      (Map : Namespace_Map.Map;
       Key : String) return Boolean is
      (Namespace_Map.Contains (Map, UBS.To_Unbounded_String (Key)));
+   procedure Update_Namespace
+     (Map     : in out Namespace_Map.Map;
+      Name    : UBS.Unbounded_String;
+      Pointer : file_sha1.Sha1_value);
 
    type Album_Info is tagged record
-      Unique_Id      : file_sha1.Sha1_Value;
-      -- SHA-1 of the album entries file
+      Unique_Id       : file_sha1.Sha1_value;
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
-      -- SHA-1 of the children album entries file
-      Children_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
-      Name             : UBS.Unbounded_String;
+      Name            : UBS.Unbounded_String;
    end record;
 
    function "<" (a, b : Album_Info) return Boolean;
    function ">" (a, b : Album_Info) return Boolean;
 
-   package Album_Set is new Ada.Containers.Ordered_Sets (Album_Info);
-
-   type Album_Table is tagged record
-      Unique_Id      : file_sha1.Sha1_value;
-      Parent_Pointer : file_sha1.Sha1_value;
-      Entries        : Album_Set.Set;
-   end record;
+   package Trees is new Ada.Containers.Multiway_Trees (Album_Info);
 
    procedure Add_Album
-     (Table : in out Album_Table;
-      Stat  : in out Status.Status_Map.Map;
-      Name  :        String);
-   procedure Save_Albums (Album_Items : in Album_Table; path : String);
-   procedure Load_Albums (Album_Items : out Album_Table; path : String);
-   procedure Print_Tree (Album_Items : Album_Table);
-
-private
-
-   procedure Display_Album_Level
-     (Album_Items : Album_Table;
-      Level       : Integer);
+     (T    : in out Trees.Tree;
+      Stat : in out Status.Status_Map.Map;
+      Path :        Album_Path);
+   procedure Save_Albums (Tree_Data : Trees.Tree; File_Path : String);
+   procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String);
+   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer);
+   function Find_In_Branch
+     (C    : Trees.Cursor;
+      Name : UBS.Unbounded_String) return Trees.Cursor;
 end album;

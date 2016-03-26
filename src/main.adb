@@ -27,8 +27,12 @@ procedure main is
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
 
-   root_album_table : Album.Album_Table;
-   Project_Status : Status.Status_Map.Map;
+   Root_Album_Tree : album.Trees.Tree;
+   Project_Status  : Status.Status_Map.Map;
+
+   function "+"
+     (S : String) return UBS.Unbounded_String is
+     (UBS.To_Unbounded_String (S));
 
    function Integer2Hexa
      (Hex_Int : Integer;
@@ -113,33 +117,34 @@ procedure main is
       Ada.Directories.End_Search (Search);
    end add_files;
 
-   procedure test is
-      Entries : Album_Table;
+   procedure Test
+     (T    : in out Trees.Tree;
+      Stat : in out Status.Status_Map.Map)
+   is
    begin
-      Add_Album(Entries, Project_Status, "food");
+      Add_Album (T, Stat, (1 => +"animal"));
+      Add_Album (T, Stat, (+"animal", +"bird"));
+      Add_Album (T, Stat, (+"animal", +"bird", +"duck"));
+      Add_Album (T, Stat, (+"animal", +"bird", +"sparrow"));
+      Add_Album (T, Stat, (1 => +"food"));
+      Add_Album (T, Stat, (+"food", +"bread"));
+      Add_Album (T, Stat, (+"food", +"dairy"));
+      Add_Album (T, Stat, (+"food", +"dairy", +"milk"));
+      Add_Album (T, Stat, (+"food", +"dairy", +"ice cream"));
+      Display_Tree (T.Root, 0);
+   end Test;
 
-      Add_Album(Entries, Project_Status, "animal");
-
-      Add_Album (Entries, Project_Status, "movie");
-
-      Add_Album (Entries, Project_Status, "TV show");
-
-      album.Print_Tree (Entries);
-      --album.Save_Albums(items, config.album_refs_file);
-   end test;
-
-   procedure add_new_album_cmd (items : in out Album.Album_Table) is
-      pragma Unreferenced (items);
+   procedure add_new_album_cmd
+     (Tree_Data : in out album.Trees.Tree;
+      Stat      : in out Status.Status_Map.Map)
+   is
+      Path : album.Album_Path (1 .. (CLI.Argument_Count - 1));
    begin
       begin
-         null;
-         --Album.Create (Temp_Album, CLI.Argument (2));
---           for I in 2 .. CLI.Argument_Count loop
---              TIO.Put_Line ("- " & CLI.Argument (I));
---           end loop;
-         -- Album_Set.Insert (Items, temp_album);
-         -- album.Save_Albums(items, config.album_refs_file);
-         -- TIO.Put_Line("added new album");
+         for I in 2 .. CLI.Argument_Count loop
+            Path (I - 1) := +CLI.Argument (I);
+         end loop;
+         album.Add_Album (Tree_Data, Stat, Path);
       exception
          when Constraint_Error =>
             TIO.Put_Line (File => Standard_Error, Item => "duplicate album");
@@ -158,7 +163,10 @@ procedure main is
             null;
       end;
 
-      Status.Set_Default_Value(Project_Status, "current_namespace", Config.Default_Album_Namespace);
+      Status.Set_Default_Value
+        (Project_Status,
+         "current_namespace",
+         config.Default_Album_Namespace);
    end Create_Default_Namespace;
 
    procedure Add_Namespace
@@ -235,28 +243,64 @@ procedure main is
       end if;
    end Edit_Namespace_Cmd;
 
+   procedure Save_Current_Album
+     (Tree_Data         :        Trees.Tree;
+      Namespaces        : in out album.Namespace_Map.Map;
+      Current_Namespace :        UBS.Unbounded_String)
+   is
+      New_Album_Pointer : file_sha1.Sha1_value;
+      Temp_Path         : constant String :=
+        DIR_OPS.Format_Pathname (config.Temp_Dir & "/album-tree");
+      Current_Pointer : file_sha1.Sha1_value;
+   begin
+      Current_Pointer :=
+        album.Namespace_Pointer (Namespaces, Current_Namespace);
+      album.Save_Albums (Tree_Data, Temp_Path);
+      New_Album_Pointer := file_sha1.get_file_sha1 (Temp_Path);
+      if New_Album_Pointer /= Current_Pointer then
+         -- move temp file to objects directory
+         Ada.Directories.Copy_File
+           (Temp_Path,
+            file_item.get_path (New_Album_Pointer));
+         -- update the album namespace pointer
+         album.Update_Namespace
+           (Namespaces,
+            Current_Namespace,
+            New_Album_Pointer);
+         -- remove the old album tree
+         if Current_Pointer /= file_sha1.Empty_Sha1 and
+           Current_Pointer /= New_Album_Pointer
+         then
+            Ada.Directories.Delete_File (file_item.get_path (Current_Pointer));
+         end if;
+      end if;
+   end Save_Current_Album;
+
    Album_Namespaces          : album.Namespace_Map.Map;
-   current_namespace_pointer : file_sha1.Sha1_value;
-   current_namespace_name    : UBS.Unbounded_String;
+   Current_Namespace_Pointer : file_sha1.Sha1_value;
+   Current_Namespace_Name    : UBS.Unbounded_String;
 begin
 
    create_directories;
    create_files;
    Status.Load (Project_Status, config.Status_File);
    Create_Default_Namespace;
-   Status.Set_Default_Value(Project_Status, "sha1_seed", File_Sha1.Empty_Sha1);
+   Status.Set_Default_Value
+     (Project_Status,
+      "sha1_seed",
+      file_sha1.Empty_Sha1);
 
    album.Load (Album_Namespaces, config.Album_Refs_File);
-   current_namespace_name :=
+   Current_Namespace_Name :=
      UBS.To_Unbounded_String
        (Status.Get (Project_Status, "current_namespace"));
-   
-   current_namespace_pointer :=
-     album.Namespace_Pointer (Album_Namespaces, current_namespace_name);
+
+   Current_Namespace_Pointer :=
+     album.Namespace_Pointer (Album_Namespaces, Current_Namespace_Name);
    album.Load_Albums
-     (root_album_table,
-      file_item.get_path (current_namespace_pointer));
-   
+     (Root_Album_Tree,
+      file_item.get_path (Current_Namespace_Pointer));
+
    if CLI.Argument_Count < 1 then
       config.display_help;
       CLI.Set_Exit_Status (CLI.Failure);
@@ -269,14 +313,14 @@ begin
          add_files;
 
       elsif CLI.Argument (1) = "test" then
-         test;
+         Test (Root_Album_Tree, Project_Status);
 
       elsif CLI.Argument (1) = "tree" then
-         album.Print_Tree (root_album_table);
+         album.Display_Tree (Root_Album_Tree.Root, 0);
 
       elsif CLI.Argument (1) = "new" then
          if CLI.Argument_Count > 1 then
-            add_new_album_cmd (root_album_table);
+            add_new_album_cmd (Root_Album_Tree, Project_Status);
          else
             TIO.Put_Line ("enter a an album tree path");
          end if;
@@ -290,9 +334,11 @@ begin
       end if;
    end if;
 
-   Save (Album_Namespaces, config.Album_Refs_File);
-
+   Save_Current_Album
+     (Root_Album_Tree,
+      Album_Namespaces,
+      Current_Namespace_Name);
    Status.Save (Project_Status, config.Status_File);
-   -- clean up any temporary files or directories
+   album.Save (Album_Namespaces, config.Album_Refs_File);
    clear_temp_dir;
 end main;

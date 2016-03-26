@@ -39,7 +39,6 @@ package body Status is
       Set(Map, Key, UBS.To_Unbounded_String(Value));
    end Set;
    
-   
    procedure Set(Map : in out Status_Map.Map; Key : String; Value : UBS.Unbounded_String) is
       Key_Name : constant UBS.Unbounded_String := UBS.To_Unbounded_String(Key);
       Result_Cursor : Status_Map.Cursor;
