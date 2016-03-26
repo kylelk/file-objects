@@ -116,24 +116,7 @@ procedure main is
       end loop;
       Ada.Directories.End_Search (Search);
    end add_files;
-
-   procedure Test
-     (T    : in out Trees.Tree;
-      Stat : in out Status.Status_Map.Map)
-   is
-   begin
-      Add_Album (T, Stat, (1 => +"animal"));
-      Add_Album (T, Stat, (+"animal", +"bird"));
-      Add_Album (T, Stat, (+"animal", +"bird", +"duck"));
-      Add_Album (T, Stat, (+"animal", +"bird", +"sparrow"));
-      Add_Album (T, Stat, (1 => +"food"));
-      Add_Album (T, Stat, (+"food", +"bread"));
-      Add_Album (T, Stat, (+"food", +"dairy"));
-      Add_Album (T, Stat, (+"food", +"dairy", +"milk"));
-      Add_Album (T, Stat, (+"food", +"dairy", +"ice cream"));
-      Display_Tree (T.Root, 0);
-   end Test;
-
+   
    procedure add_new_album_cmd
      (Tree_Data : in out album.Trees.Tree;
       Stat      : in out Status.Status_Map.Map)
@@ -149,7 +132,7 @@ procedure main is
          when Constraint_Error =>
             TIO.Put_Line (File => Standard_Error, Item => "duplicate album");
       end;
-   end add_new_album_cmd;
+   end Add_New_Album_Cmd;
 
    procedure Create_Default_Namespace is
       Album_Namespaces : album.Namespace_Map.Map;
@@ -225,7 +208,6 @@ procedure main is
          if CLI.Argument (2) = "list" then
             Display_Namespaces (Map);
          elsif CLI.Argument (2) = "current" then
-
             TIO.Put_Line (Status.Get (Project_Status, "current_namespace"));
          end if;
       elsif CLI.Argument_Count > 1 then
@@ -238,7 +220,7 @@ procedure main is
          end if;
       else
          TIO.Put_Line
-           (File => Standard_Error,
+           (File => TIO.Standard_Error,
             Item => "enter a namespace operation");
       end if;
    end Edit_Namespace_Cmd;
@@ -275,6 +257,22 @@ procedure main is
          end if;
       end if;
    end Save_Current_Album;
+   
+   procedure Edit_Album_Cmd(Current_Album : in out Album.Trees.Tree) is
+      Path : album.Album_Path (1 .. (CLI.Argument_Count - 2));
+   begin
+      if CLI.Argument_Count = 2 then
+         null;
+      elsif CLI.Argument_Count > 1 then
+         for I in 3 .. CLI.Argument_Count loop
+            Path (I - 2) := +CLI.Argument (I);
+         end loop;
+         
+         if CLI.Argument(2) = "remove" then
+            Album.Remove_Album(Current_Album, Path);
+         end if;
+        end if;
+   end Edit_Album_Cmd;
 
    Album_Namespaces          : album.Namespace_Map.Map;
    Current_Namespace_Pointer : file_sha1.Sha1_value;
@@ -312,12 +310,12 @@ begin
       elsif CLI.Argument (1) = "add" then
          add_files;
 
-      elsif CLI.Argument (1) = "test" then
-         Test (Root_Album_Tree, Project_Status);
-
       elsif CLI.Argument (1) = "tree" then
          album.Display_Tree (Root_Album_Tree.Root, 0);
 
+      elsif CLI.Argument(1) = "album" then
+         Edit_Album_Cmd(Root_Album_Tree);
+         
       elsif CLI.Argument (1) = "new" then
          if CLI.Argument_Count > 1 then
             add_new_album_cmd (Root_Album_Tree, Project_Status);

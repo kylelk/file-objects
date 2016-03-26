@@ -135,11 +135,12 @@ package body album is
       Result : Trees.Cursor;
       Item : Album_Info;
       Unique_Id : File_Sha1.Sha1_value;
+      Seed : constant String := Status.Get(Stat, "sha1_seed");
    begin
       for Name of Path loop
          Result := Find_In_Branch (C, Name);
          if Result = Trees.No_Element then
-            Unique_Id := File_Sha1.String_Hash(Status.Get(Stat, "sha1_seed"));
+            Unique_Id := File_Sha1.String_Hash(Seed & Seed);
             Item.Unique_Id := Unique_Id;
             Item.Name := Name;
             T.Insert_Child (C, Trees.No_Element, Item, Position => C);
@@ -164,4 +165,28 @@ package body album is
          Next_Item := Trees.Next_Sibling (Next_Item);
       end loop;
    end Display_Tree;
+
+   procedure Remove_Album(Tree_Data : in out Trees.Tree; Path : Album_Path) is
+      use Trees;
+      C      : Trees.Cursor := Tree_Data.Root;
+      Name : UBS.Unbounded_String;
+      Result : Trees.Cursor;
+   begin
+      for I in Path'Range loop
+         Name := Path(I);
+         Result := Find_In_Branch (C, Name);
+         if Result /= Trees.No_Element then
+            if I = Path'Last then
+               if not Trees.Is_Leaf(Result) then
+                  Trees.Delete_Children(Tree_Data, Result);
+               end if;
+               Trees.Delete_Leaf(Tree_Data, Result);
+            end if;
+            C := Result;
+         else
+            Ada.Text_IO.Put_Line(Ada.Text_IO.Standard_Error, "cannot find album");
+            exit;
+         end if;
+      end loop;
+   end Remove_Album;
 end album;

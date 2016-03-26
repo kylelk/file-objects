@@ -43,6 +43,7 @@ package album is
    type Album_Info is tagged record
       Unique_Id       : file_sha1.Sha1_value;
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
+      Is_Head : Boolean := False;
       Name            : UBS.Unbounded_String;
    end record;
 
@@ -61,4 +62,5 @@ package album is
    function Find_In_Branch
      (C    : Trees.Cursor;
       Name : UBS.Unbounded_String) return Trees.Cursor;
+   procedure Remove_Album(Tree_Data : in out Trees.Tree; Path : Album_Path);
 end album;
