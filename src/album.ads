@@ -33,6 +33,7 @@ package album is
      (Namespace_Map.Contains (Map, UBS.To_Unbounded_String (Key)));
 
    type Album_Info is tagged record
+      Unique_Id      : file_sha1.Sha1_Value;
       -- SHA-1 of the album entries file
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
       -- SHA-1 of the children album entries file
@@ -55,13 +56,13 @@ package album is
      (Table : in out Album_Table;
       Stat  : in out Status.Status_Map.Map;
       Name  :        String);
-   procedure Save_Albums (Album_Items : in Album_Set.Set; path : String);
-   procedure Load_Albums (Album_Items : out Album_Set.Set; path : String);
-   procedure Print_Tree (Album_Items : Album_Set.Set);
+   procedure Save_Albums (Album_Items : in Album_Table; path : String);
+   procedure Load_Albums (Album_Items : out Album_Table; path : String);
+   procedure Print_Tree (Album_Items : Album_Table);
 
 private
 
    procedure Display_Album_Level
-     (Album_Items : Album_Set.Set;
+     (Album_Items : Album_Table;
       Level       : Integer);
 end album;

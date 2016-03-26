@@ -27,7 +27,7 @@ procedure main is
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
 
-   root_album_set : Album_Set.Set;
+   root_album_table : Album.Album_Table;
    Project_Status : Status.Status_Map.Map;
 
    function Integer2Hexa
@@ -114,35 +114,29 @@ procedure main is
    end add_files;
 
    procedure test is
-      items      : Album_Set.Set;
       Entries : Album_Table;
-      album_item : Album_Info;
    begin
-      Add_Album(Entries, Project_Status, "food",);
-      Album_Set.Insert (items, album_item);
+      Add_Album(Entries, Project_Status, "food");
 
-      Create (album_item, "animal");
-      Album_Set.Insert (items, album_item);
+      Add_Album(Entries, Project_Status, "animal");
 
-      Create (album_item, "movie");
-      Album_Set.Insert (items, album_item);
+      Add_Album (Entries, Project_Status, "movie");
 
-      Create (album_item, "TV show");
-      Album_Set.Insert (items, album_item);
+      Add_Album (Entries, Project_Status, "TV show");
 
-      album.Print_Tree (items);
+      album.Print_Tree (Entries);
       --album.Save_Albums(items, config.album_refs_file);
    end test;
 
-   procedure add_new_album_cmd (items : in out Album_Set.Set) is
+   procedure add_new_album_cmd (items : in out Album.Album_Table) is
       pragma Unreferenced (items);
-      temp_album : Album_Info;
    begin
       begin
-         album.Create (temp_album, CLI.Argument (2));
-         for I in 2 .. CLI.Argument_Count loop
-            TIO.Put_Line ("- " & CLI.Argument (I));
-         end loop;
+         null;
+         --Album.Create (Temp_Album, CLI.Argument (2));
+--           for I in 2 .. CLI.Argument_Count loop
+--              TIO.Put_Line ("- " & CLI.Argument (I));
+--           end loop;
          -- Album_Set.Insert (Items, temp_album);
          -- album.Save_Albums(items, config.album_refs_file);
          -- TIO.Put_Line("added new album");
@@ -260,9 +254,9 @@ begin
    current_namespace_pointer :=
      album.Namespace_Pointer (Album_Namespaces, current_namespace_name);
    album.Load_Albums
-     (root_album_set,
+     (root_album_table,
       file_item.get_path (current_namespace_pointer));
-
+   
    if CLI.Argument_Count < 1 then
       config.display_help;
       CLI.Set_Exit_Status (CLI.Failure);
@@ -278,11 +272,11 @@ begin
          test;
 
       elsif CLI.Argument (1) = "tree" then
-         album.Print_Tree (root_album_set);
+         album.Print_Tree (root_album_table);
 
       elsif CLI.Argument (1) = "new" then
          if CLI.Argument_Count > 1 then
-            add_new_album_cmd (root_album_set);
+            add_new_album_cmd (root_album_table);
          else
             TIO.Put_Line ("enter a an album tree path");
          end if;
