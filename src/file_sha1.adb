@@ -1,6 +1,7 @@
 with Ada.Direct_IO;
 with GNAT.SHA1;
 with Ada.Directories;
+with Ada.Numerics.Discrete_Random;
 
 package body file_sha1 is
    function get_file_sha1 (file_name : String) return Sha1_value is
@@ -28,4 +29,15 @@ package body file_sha1 is
       return GNAT.SHA1.Digest (C);
    end String_Hash;
 
+   function Rand_Sha1 return Sha1_Value is
+      package Guess_Generator is new Ada.Numerics.Discrete_Random(Character);
+      Gen : Guess_Generator.Generator;
+      Data : Sha1_Value;
+   begin
+      for I in Data'Range loop
+         Guess_Generator.Reset(Gen);
+         Data(I) := Guess_Generator.Random(Gen);
+      end loop;
+      return String_Hash(Data);
+   end Rand_Sha1;
 end file_sha1;

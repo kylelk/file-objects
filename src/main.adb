@@ -271,7 +271,7 @@ procedure main is
          if CLI.Argument (2) = "remove" then
             album.Remove_Album (Current_Album, Path);
          elsif CLI.Argument (2) = "checkout" then
-            album.Checkout_Album (Current_Album, Path);
+            album.Checkout_Album (Current_Album, Path, Project_Status);
          end if;
       end if;
    end Edit_Album_Cmd;
@@ -288,7 +288,7 @@ begin
    Status.Set_Default_Value
      (Project_Status,
       "sha1_seed",
-      file_sha1.Empty_Sha1);
+      File_Sha1.Rand_Sha1);
 
    album.Load (Album_Namespaces, config.Album_Refs_File);
    Current_Namespace_Name :=
@@ -313,7 +313,7 @@ begin
          add_files;
 
       elsif CLI.Argument (1) = "tree" then
-         album.Display_Tree (Root_Album_Tree.Root, 0);
+         album.Display_Tree (Root_Album_Tree.Root, 0, Project_Status);
 
       elsif CLI.Argument (1) = "album" then
          Edit_Album_Cmd (Root_Album_Tree);

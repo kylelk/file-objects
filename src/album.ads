@@ -43,7 +43,6 @@ package album is
    type Album_Info is tagged record
       Unique_Id       : file_sha1.Sha1_value;
       Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
-      Is_Head : Boolean := False;
       Name            : UBS.Unbounded_String;
    end record;
 
@@ -58,11 +57,12 @@ package album is
       Path :        Album_Path);
    procedure Save_Albums (Tree_Data : Trees.Tree; File_Path : String);
    procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String);
-   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer);
+   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer; Stat : Status.Status_Map.Map);
    function Find_In_Branch
      (C    : Trees.Cursor;
       Name : UBS.Unbounded_String) return Trees.Cursor;
    procedure Remove_Album(Tree_Data : in out Trees.Tree; Path : Album_Path);
-   procedure Checkout_Album(Tree_Data : in out Trees.Tree; Path : Album_Path);
-   procedure Clear_Head_Status(Tree_Data: in out Trees.Tree ;  Tree_Cursor : Trees.Cursor);
+   procedure Checkout_Album(Tree_Data : Trees.Tree; Path : Album_Path; Stat : in out Status.Status_Map.Map);
+   -- when no result is found then an empty SHA-1 hash is returned
+   function Get_Head_Id(Stat : Status.Status_Map.Map) return File_Sha1.Sha1_Value;
 end album;

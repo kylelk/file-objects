@@ -159,21 +159,22 @@ package body album is
       end loop;
    end Add_Album;
 
-   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer) is
+   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer; Stat : Status.Status_Map.Map) is
       use Trees;
       Next_Item     : Trees.Cursor;
       Status_Symbol : Character := ' ';
+      Head_Id : constant String := Get_Head_Id(Stat);
    begin
       Next_Item := Trees.First_Child (Tree_Cursor);
       while Next_Item /= Trees.No_Element loop
-         if Trees.Element (Next_Item).Is_Head then
+         if Trees.Element (Next_Item).Unique_Id = Head_Id then
             Status_Symbol := '@';
          end if;
          Ada.Text_IO.Put (Fixed_Str."*" (Level * 4, " "));
          Ada.Text_IO.Put (Status_Symbol & " ");
          Ada.Text_IO.Unbounded_IO.Put_Line (Trees.Element (Next_Item).Name);
          if not Trees.Is_Leaf (Next_Item) then
-            Display_Tree (Next_Item, Level + 1);
+            Display_Tree (Next_Item, Level + 1, Stat);
          end if;
          Next_Item := Trees.Next_Sibling (Next_Item);
       end loop;
@@ -205,26 +206,18 @@ package body album is
       end loop;
    end Remove_Album;
 
-   procedure Checkout_Album
-     (Tree_Data : in out Trees.Tree;
-      Path      :        Album_Path)
-   is
+   procedure Checkout_Album (Tree_Data : Trees.Tree; Path : Album_Path; Stat : in out Status.Status_Map.Map) is
       use Trees;
-      Result    : Trees.Cursor;
-      Temp_Item : Album_Info;
-      Name      : UBS.Unbounded_String;
-      C         : Trees.Cursor;
+      C      : Trees.Cursor := Tree_Data.Root;
+      Name   : UBS.Unbounded_String;
+      Result : Trees.Cursor;
    begin
-      Clear_Head_Status (Tree_Data, Tree_Data.Root);
       for I in Path'Range loop
          Name   := Path (I);
          Result := Find_In_Branch (C, Name);
-         Ada.Text_IO.Put_Line ("found index " & I'Img);
          if Result /= Trees.No_Element then
             if I = Path'Last then
-               Temp_Item         := Trees.Element (Result);
-               Temp_Item.Is_Head := True;
-               Trees.Replace_Element (Tree_Data, Result, Temp_Item);
+               Status.Set(Stat, "head_album_id", Trees.Element(Result).Unique_Id);
             end if;
             C := Result;
          else
@@ -236,26 +229,14 @@ package body album is
       end loop;
    end Checkout_Album;
 
-   procedure Clear_Head_Status
-     (Tree_Data   : in out Trees.Tree;
-      Tree_Cursor :        Trees.Cursor)
-   is
-      use Trees;
-      Next_Item : Trees.Cursor;
-      Temp_Item : Album_Info;
+   function Get_Head_Id(Stat : Status.Status_Map.Map) return File_Sha1.Sha1_value is
+      Result : File_Sha1.Sha1_Value := File_Sha1.Empty_Sha1;
    begin
-      Next_Item := Trees.First_Child (Tree_Cursor);
-      while Next_Item /= Trees.No_Element loop
-         Temp_Item := Trees.Element (Next_Item);
-         if Temp_Item.Is_Head then
-            Temp_Item.Is_Head := False;
-            Trees.Replace_Element (Tree_Data, Next_Item, Temp_Item);
-            exit;
-         end if;
-         if not Trees.Is_Leaf (Next_Item) then
-            Clear_Head_Status (Tree_Data, Next_Item);
-         end if;
-         Next_Item := Trees.Next_Sibling (Next_Item);
-      end loop;
-   end Clear_Head_Status;
+      begin
+         Result := Status.Get(Stat, "head_album_id");
+      exception
+         when Constraint_Error => null;
+      end;
+      return Result;
+   end Get_Head_Id;
 end album;

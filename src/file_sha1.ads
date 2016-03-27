@@ -4,4 +4,5 @@ package file_sha1 is
    
    function get_file_sha1(file_name : String) return Sha1_value;
    function String_Hash(Data : String) return Sha1_value;
+   function Rand_Sha1 return Sha1_Value;
 end file_sha1;
