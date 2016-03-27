@@ -116,7 +116,7 @@ procedure main is
       end loop;
       Ada.Directories.End_Search (Search);
    end add_files;
-   
+
    procedure add_new_album_cmd
      (Tree_Data : in out album.Trees.Tree;
       Stat      : in out Status.Status_Map.Map)
@@ -132,7 +132,7 @@ procedure main is
          when Constraint_Error =>
             TIO.Put_Line (File => Standard_Error, Item => "duplicate album");
       end;
-   end Add_New_Album_Cmd;
+   end add_new_album_cmd;
 
    procedure Create_Default_Namespace is
       Album_Namespaces : album.Namespace_Map.Map;
@@ -257,21 +257,23 @@ procedure main is
          end if;
       end if;
    end Save_Current_Album;
-   
-   procedure Edit_Album_Cmd(Current_Album : in out Album.Trees.Tree) is
+
+   procedure Edit_Album_Cmd (Current_Album : in out album.Trees.Tree) is
       Path : album.Album_Path (1 .. (CLI.Argument_Count - 2));
    begin
       if CLI.Argument_Count = 2 then
          null;
       elsif CLI.Argument_Count > 1 then
          for I in 3 .. CLI.Argument_Count loop
-            Path (I - 2) := +CLI.Argument (I);
+            Path (I - 2) := UBS.To_Unbounded_String (CLI.Argument (I));
          end loop;
-         
-         if CLI.Argument(2) = "remove" then
-            Album.Remove_Album(Current_Album, Path);
+
+         if CLI.Argument (2) = "remove" then
+            album.Remove_Album (Current_Album, Path);
+         elsif CLI.Argument (2) = "checkout" then
+            album.Checkout_Album (Current_Album, Path);
          end if;
-        end if;
+      end if;
    end Edit_Album_Cmd;
 
    Album_Namespaces          : album.Namespace_Map.Map;
@@ -313,9 +315,9 @@ begin
       elsif CLI.Argument (1) = "tree" then
          album.Display_Tree (Root_Album_Tree.Root, 0);
 
-      elsif CLI.Argument(1) = "album" then
-         Edit_Album_Cmd(Root_Album_Tree);
-         
+      elsif CLI.Argument (1) = "album" then
+         Edit_Album_Cmd (Root_Album_Tree);
+
       elsif CLI.Argument (1) = "new" then
          if CLI.Argument_Count > 1 then
             add_new_album_cmd (Root_Album_Tree, Project_Status);

@@ -79,9 +79,13 @@ package body album is
       return Namespace_Map.Element (Map, Name);
    end Namespace_Pointer;
 
-   procedure Update_Namespace(Map : in out Namespace_Map.Map; Name : UBS.Unbounded_String; Pointer : File_Sha1.Sha1_value) is
+   procedure Update_Namespace
+     (Map     : in out Namespace_Map.Map;
+      Name    :        UBS.Unbounded_String;
+      Pointer :        file_sha1.Sha1_value)
+   is
    begin
-      Namespace_Map.Replace(Map, Name, Pointer);
+      Namespace_Map.Replace (Map, Name, Pointer);
    end Update_Namespace;
 
    procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String) is
@@ -112,7 +116,7 @@ package body album is
       STIO.Close (File_Handle);
    end Save_Albums;
 
-    function Find_In_Branch
+   function Find_In_Branch
      (C    : Trees.Cursor;
       Name : UBS.Unbounded_String) return Trees.Cursor
    is
@@ -129,22 +133,26 @@ package body album is
       return Trees.No_Element;
    end Find_In_Branch;
 
-   procedure Add_Album (T : in out Trees.Tree; Stat : in out Status.Status_Map.Map; Path : Album_Path) is
+   procedure Add_Album
+     (T    : in out Trees.Tree;
+      Stat : in out Status.Status_Map.Map;
+      Path :        Album_Path)
+   is
       use Trees;
-      C      : Trees.Cursor := T.Root;
-      Result : Trees.Cursor;
-      Item : Album_Info;
-      Unique_Id : File_Sha1.Sha1_value;
-      Seed : constant String := Status.Get(Stat, "sha1_seed");
+      C         : Trees.Cursor    := T.Root;
+      Result    : Trees.Cursor;
+      Item      : Album_Info;
+      Unique_Id : file_sha1.Sha1_value;
+      Seed      : constant String := Status.Get (Stat, "sha1_seed");
    begin
       for Name of Path loop
          Result := Find_In_Branch (C, Name);
          if Result = Trees.No_Element then
-            Unique_Id := File_Sha1.String_Hash(Seed & Seed);
+            Unique_Id      := file_sha1.String_Hash (Seed & Seed);
             Item.Unique_Id := Unique_Id;
-            Item.Name := Name;
+            Item.Name      := Name;
             T.Insert_Child (C, Trees.No_Element, Item, Position => C);
-            Status.Set(Stat, "sha1_seed", Unique_Id);
+            Status.Set (Stat, "sha1_seed", Unique_Id);
          else
             C := Result;
          end if;
@@ -153,11 +161,16 @@ package body album is
 
    procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer) is
       use Trees;
-      Next_Item : Trees.Cursor;
+      Next_Item     : Trees.Cursor;
+      Status_Symbol : Character := ' ';
    begin
       Next_Item := Trees.First_Child (Tree_Cursor);
       while Next_Item /= Trees.No_Element loop
+         if Trees.Element (Next_Item).Is_Head then
+            Status_Symbol := '@';
+         end if;
          Ada.Text_IO.Put (Fixed_Str."*" (Level * 4, " "));
+         Ada.Text_IO.Put (Status_Symbol & " ");
          Ada.Text_IO.Unbounded_IO.Put_Line (Trees.Element (Next_Item).Name);
          if not Trees.Is_Leaf (Next_Item) then
             Display_Tree (Next_Item, Level + 1);
@@ -166,27 +179,83 @@ package body album is
       end loop;
    end Display_Tree;
 
-   procedure Remove_Album(Tree_Data : in out Trees.Tree; Path : Album_Path) is
+   procedure Remove_Album (Tree_Data : in out Trees.Tree; Path : Album_Path) is
       use Trees;
       C      : Trees.Cursor := Tree_Data.Root;
-      Name : UBS.Unbounded_String;
+      Name   : UBS.Unbounded_String;
       Result : Trees.Cursor;
    begin
       for I in Path'Range loop
-         Name := Path(I);
+         Name   := Path (I);
          Result := Find_In_Branch (C, Name);
          if Result /= Trees.No_Element then
             if I = Path'Last then
-               if not Trees.Is_Leaf(Result) then
-                  Trees.Delete_Children(Tree_Data, Result);
+               if not Trees.Is_Leaf (Result) then
+                  Trees.Delete_Children (Tree_Data, Result);
                end if;
-               Trees.Delete_Leaf(Tree_Data, Result);
+               Trees.Delete_Leaf (Tree_Data, Result);
             end if;
             C := Result;
          else
-            Ada.Text_IO.Put_Line(Ada.Text_IO.Standard_Error, "cannot find album");
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "cannot find album");
             exit;
          end if;
       end loop;
    end Remove_Album;
+
+   procedure Checkout_Album
+     (Tree_Data : in out Trees.Tree;
+      Path      :        Album_Path)
+   is
+      use Trees;
+      Result    : Trees.Cursor;
+      Temp_Item : Album_Info;
+      Name      : UBS.Unbounded_String;
+      C         : Trees.Cursor;
+   begin
+      Clear_Head_Status (Tree_Data, Tree_Data.Root);
+      for I in Path'Range loop
+         Name   := Path (I);
+         Result := Find_In_Branch (C, Name);
+         Ada.Text_IO.Put_Line ("found index " & I'Img);
+         if Result /= Trees.No_Element then
+            if I = Path'Last then
+               Temp_Item         := Trees.Element (Result);
+               Temp_Item.Is_Head := True;
+               Trees.Replace_Element (Tree_Data, Result, Temp_Item);
+            end if;
+            C := Result;
+         else
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "cannot find album");
+            exit;
+         end if;
+      end loop;
+   end Checkout_Album;
+
+   procedure Clear_Head_Status
+     (Tree_Data   : in out Trees.Tree;
+      Tree_Cursor :        Trees.Cursor)
+   is
+      use Trees;
+      Next_Item : Trees.Cursor;
+      Temp_Item : Album_Info;
+   begin
+      Next_Item := Trees.First_Child (Tree_Cursor);
+      while Next_Item /= Trees.No_Element loop
+         Temp_Item := Trees.Element (Next_Item);
+         if Temp_Item.Is_Head then
+            Temp_Item.Is_Head := False;
+            Trees.Replace_Element (Tree_Data, Next_Item, Temp_Item);
+            exit;
+         end if;
+         if not Trees.Is_Leaf (Next_Item) then
+            Clear_Head_Status (Tree_Data, Next_Item);
+         end if;
+         Next_Item := Trees.Next_Sibling (Next_Item);
+      end loop;
+   end Clear_Head_Status;
 end album;

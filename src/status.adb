@@ -64,5 +64,4 @@ package body Status is
          Set(Map, Key, Value);
       end if;
    end Set_Default_Value;
-   
 end Status;

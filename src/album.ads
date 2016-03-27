@@ -63,4 +63,6 @@ package album is
      (C    : Trees.Cursor;
       Name : UBS.Unbounded_String) return Trees.Cursor;
    procedure Remove_Album(Tree_Data : in out Trees.Tree; Path : Album_Path);
+   procedure Checkout_Album(Tree_Data : in out Trees.Tree; Path : Album_Path);
+   procedure Clear_Head_Status(Tree_Data: in out Trees.Tree ;  Tree_Cursor : Trees.Cursor);
 end album;
