@@ -170,11 +170,16 @@ procedure main is
 
    procedure Remove_Namespace
      (Map  : in out album.Namespace_Map.Map;
+      Stat : Status.Status_Map.Map; 
       Name :        String)
    is
    begin
       begin
-         if Name /= config.Default_Album_Namespace then
+         if Name = Status.Get(Stat, "current_namespace") then
+            TIO.Put_Line
+              (File => Standard_Error,
+               Item => "cannot remove the current namespace");
+         elsif Name /= config.Default_Album_Namespace then
             album.Remove (Map, Name);
             TIO.Put_Line ("removed namespace: " & Name);
          else
@@ -214,7 +219,7 @@ procedure main is
          if CLI.Argument (2) = "new" then
             Add_Namespace (Map, CLI.Argument (3));
          elsif CLI.Argument (2) = "remove" then
-            Remove_Namespace (Map, CLI.Argument (3));
+            Remove_Namespace (Map, Project_Status, CLI.Argument (3));
          elsif CLI.Argument (2) = "change" then
             Change_Namespace (Map, CLI.Argument (3));
          end if;
@@ -262,7 +267,9 @@ procedure main is
       Path : album.Album_Path (1 .. (CLI.Argument_Count - 2));
    begin
       if CLI.Argument_Count = 2 then
-         null;
+         if CLI.Argument(2) = "tree" then
+            Album.Display_Tree (Current_Album.Root, 0, Project_Status);
+         end if;
       elsif CLI.Argument_Count > 1 then
          for I in 3 .. CLI.Argument_Count loop
             Path (I - 2) := UBS.To_Unbounded_String (CLI.Argument (I));
@@ -311,9 +318,6 @@ begin
 
       elsif CLI.Argument (1) = "add" then
          add_files;
-
-      elsif CLI.Argument (1) = "tree" then
-         album.Display_Tree (Root_Album_Tree.Root, 0, Project_Status);
 
       elsif CLI.Argument (1) = "album" then
          Edit_Album_Cmd (Root_Album_Tree);
