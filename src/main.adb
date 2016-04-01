@@ -14,6 +14,7 @@ with album;
 with file_operations;
 with file_sha1;
 with Status;
+with Data_Source;
 
 procedure main is
    use Ada.Directories;
@@ -296,6 +297,8 @@ begin
      (Project_Status,
       "sha1_seed",
       File_Sha1.Rand_Sha1);
+   
+   Data_Source.Load;
 
    album.Load (Album_Namespaces, config.Album_Refs_File);
    Current_Namespace_Name :=

@@ -2,3 +2,6 @@ obj/*
 !obj/.keep
 .object_dir/
 *.npp
+*.o
+*.ali
+*.db
