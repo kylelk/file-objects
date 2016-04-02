@@ -44,8 +44,10 @@ package album is
    function Namespace_Exists(DB_Conn : in out SQLite.Data_Base; Name : String) return Boolean;
 
    type Album_Info is tagged record
-      Unique_Id       : file_sha1.Sha1_value;
-      Entries_Pointer : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
+      Id : Integer;
+      Namespace : UBS.Unbounded_String;
+      Depth : Integer;
+      Parent_Id : Integer;
       Name            : UBS.Unbounded_String;
    end record;
 
