@@ -89,10 +89,9 @@ package album is
       Namespace :        UBS.Unbounded_String;
       Path      :        Album_Path);
    procedure Checkout_Album
-     (DB_Conn   :        SQLite.Data_Base;
+     (DB_Conn   :    in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
-      Path      :        Album_Path;
-      Stat      : in out Status.Status_Map.Map);
+      Path      :        Album_Path);
    function From_Row (Row : SQLite.Statement) return Album_Info;
    function Get_Head_Id
      (Stat : Status.Status_Map.Map) return file_sha1.Sha1_value;

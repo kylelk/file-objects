@@ -246,7 +246,7 @@ procedure main is
          if CLI.Argument (2) = "remove" then
             album.Remove_Album (DB_Conn, Namespace, Path);
          elsif CLI.Argument (2) = "checkout" then
-            album.Checkout_Album (DB_Conn, Namespace, Path, Project_Status);
+            album.Checkout_Album (DB_Conn, Namespace, Path);
          end if;
       end if;
    end Edit_Album_Cmd;

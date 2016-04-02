@@ -362,19 +362,27 @@ package body album is
    begin
       if Album_Exists (DB_Conn, Namespace, Path, Result) then
          Delete_Statement := SQLite.Prepare (DB_Conn, Delete_SQL);
-         SQLite.Bind (Delete_Statement, 1, int (Result.Id));
-         SQLite.Step (Delete_Statement);
+         Delete_Statement.Bind (1, int (Result.Id));
+         Delete_Statement.Step;
       end if;
    end Remove_Album;
 
    procedure Checkout_Album
-     (DB_Conn   :        SQLite.Data_Base;
+     (DB_Conn   :    in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
-      Path      :        Album_Path;
-      Stat      : in out Status.Status_Map.Map)
+      Path      :        Album_Path)
    is
+      use Interfaces.C;
+      Result : Album_Info;
+      Update_Statement : SQLite.Statement;
+      Update_SQL : constant String := "UPDATE namespaces " &
+        "SET head_album_id=? WHERE title=?;";
    begin
-      null;
+      Result := Find_Album(DB_Conn, Namespace, path);
+      Update_Statement := SQLite.Prepare(DB_Conn, Update_SQL);
+      Update_Statement.Bind(1, Int(Result.Id));
+      Update_Statement.Bind(2, UBS.To_String(Namespace));
+      Update_Statement.Step;
    end Checkout_Album;
 
    function From_Row (Row : SQLite.Statement) return Album_Info is
