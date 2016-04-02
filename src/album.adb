@@ -312,6 +312,7 @@ package body album is
       type Result_Array is array (Integer range <>) of Album_Info;
       Result_Count : Interfaces.C.int;
       Result_Index : Integer := 1;
+      Head_Id : constant Integer := Get_Head_Id(DB_Conn, Namespace);
 
       procedure Display_Level (Items : Result_Array; Parent_Id : Integer) is
          use Fixed_Str;
@@ -321,7 +322,12 @@ package body album is
             if Item.Parent_Id = Parent_Id then
                Ada.Text_IO.Put ((Indentation * Item.Depth) * " ");
                Ada.Text_IO.Put ("[" & Item.Id'Img & "] ");
-               Ada.Text_IO.Put_Line (UBS.To_String (Item.Name));
+               if Item.Id = Head_Id then
+                  Color_Text.Put(UBS.To_String(Item.Name), Color_Text.Green);
+                  Ada.Text_IO.New_Line;
+               else
+                  Ada.Text_IO.Put_Line (UBS.To_String (Item.Name));
+               end if;
                Display_Level (Items, Item.Id);
             end if;
          end loop;
@@ -372,18 +378,24 @@ package body album is
       Namespace :        UBS.Unbounded_String;
       Path      :        Album_Path)
    is
-      use Interfaces.C;
       Result : Album_Info;
+   begin
+      Result := Find_Album(DB_Conn, Namespace, path);
+      Checkout(DB_Conn, Result);
+   end Checkout_Album;
+
+   procedure Checkout(DB_Conn : SQLite.Data_Base; Item : Album_Info) is
+      use Interfaces.C;
       Update_Statement : SQLite.Statement;
       Update_SQL : constant String := "UPDATE namespaces " &
         "SET head_album_id=? WHERE title=?;";
    begin
-      Result := Find_Album(DB_Conn, Namespace, path);
       Update_Statement := SQLite.Prepare(DB_Conn, Update_SQL);
-      Update_Statement.Bind(1, Int(Result.Id));
-      Update_Statement.Bind(2, UBS.To_String(Namespace));
+      Update_Statement.Bind(1, Int(Item.Id));
+      Update_Statement.Bind(2, UBS.To_String(Item.Namespace));
       Update_Statement.Step;
-   end Checkout_Album;
+   end Checkout;
+
 
    function From_Row (Row : SQLite.Statement) return Album_Info is
       use Interfaces.C;
@@ -401,16 +413,19 @@ package body album is
    end From_Row;
 
    function Get_Head_Id
-     (Stat : Status.Status_Map.Map) return file_sha1.Sha1_value
+     (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String) return Integer
    is
-      Result : file_sha1.Sha1_value := file_sha1.Empty_Sha1;
+      use Interfaces.C;
+      Query_Statement : SQLite.Statement;
+      Query_SQL : constant String := "SELECT head_album_id from namespaces " &
+        "WHERE title=?";
    begin
-      begin
-         Result := Status.Get (Stat, "head_album_id");
-      exception
-         when Constraint_Error =>
-            null;
-      end;
-      return Result;
+      Query_Statement := SQLite.Prepare(DB_Conn, Query_SQL);
+      Query_Statement.Bind(1, UBS.To_String(Namespace));
+      if Query_Statement.Step then
+         return Integer(Int'Value(Query_Statement.Column(1)));
+      else
+         return -1;
+      end if;
    end Get_Head_Id;
 end album;
