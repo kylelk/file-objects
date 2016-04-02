@@ -204,13 +204,17 @@ procedure main is
       end if;
    end Change_Namespace;
 
-   procedure Edit_Namespace_Cmd (DB_Conn : in out SQLite.Data_Base) is
+   procedure Edit_Namespace_Cmd 
+     (DB_Conn : in out SQLite.Data_Base) is
+      Current_Namespace : UBS.Unbounded_String;
    begin
+      Current_Namespace := UBS.To_Unbounded_String(Status.Get (Project_Status, "current_namespace"));
+      
       if CLI.Argument_Count = 2 then
          if CLI.Argument (2) = "list" then
-            Display_Namespaces (DB_Conn);
+            Display_Namespaces (DB_Conn, Current_Namespace);
          elsif CLI.Argument (2) = "current" then
-            TIO.Put_Line (Status.Get (Project_Status, "current_namespace"));
+            TIO.Put_Line (UBS.To_String(Current_Namespace));
          end if;
       elsif CLI.Argument_Count > 1 then
          if CLI.Argument (2) = "new" then
@@ -281,7 +285,7 @@ begin
          if CLI.Argument_Count > 1 then
             add_new_album_cmd (DB_Conn, Current_Namespace);
          else
-            TIO.Put_Line ("enter a an album tree path");
+            TIO.Put_Line ("enter an album tree path");
          end if;
 
       elsif CLI.Argument (1) = "namespace" then
