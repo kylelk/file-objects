@@ -1,4 +1,3 @@
-with Ada.Text_IO.Unbounded_IO;
 with Ada.IO_Exceptions;
 with Ada.Text_IO;
 with Interfaces.C;
@@ -132,117 +131,83 @@ package body album is
       STIO.Close (File_Handle);
    end Save_Albums;
 
-   function Find_In_Branch
-     (C    : Trees.Cursor;
-      Name : UBS.Unbounded_String) return Trees.Cursor
-   is
-      use Trees;
-      Next_Item : Trees.Cursor;
+   function Find_Album
+     (DB_Conn : in out SQLite.Data_Base;
+      Namespace : UBS.Unbounded_String;
+      Path :  Album_Path) return Album_Info is
+
+      use Interfaces.C;
+      Result : Album_Info;
+      Depth : Integer := 0;
+      Name : UBS.Unbounded_String;
+      SQL_Query : constant String := "SELECT * FROM albums WHERE " &
+        "namespace=? AND title=? AND ";
+      Select_Statement : SQLite.Statement;
+      Parent_Id : Int := -1;
+      Result_Parent_Id : Int;
    begin
-      Next_Item := Trees.First_Child (C);
-      while Next_Item /= Trees.No_Element loop
-         if Trees.Element (Next_Item).Name = Name then
-            return Next_Item;
+      for I in Path'Range loop
+         Name := Path(I);
+         if Depth = 0 then
+            Select_Statement := SQLite.Prepare(DB_Conn, SQL_Query & "parent_id IS NULL;");
+         else
+            Select_Statement := SQLite.Prepare(DB_Conn, SQL_Query & "parent_id=?;");
          end if;
-         Next_Item := Trees.Next_Sibling (Next_Item);
+
+         SQLite.Bind(Select_Statement, 1, UBS.To_String(Namespace));
+         SQLite.Bind(Select_Statement, 2, UBS.To_String(Name));
+         if not (Depth = 0) then
+            SQLite.Bind(Select_Statement, 3, Parent_Id);
+         end if;
+
+         if SQLite.Step(Select_Statement) then
+            Parent_Id := SQLite.Column(Select_Statement, 1);
+         else
+            null;
+            raise No_Album_Exception;
+         end if;
+
+         Depth := Depth + 1;
       end loop;
-      return Trees.No_Element;
-   end Find_In_Branch;
+
+      Result_Parent_Id := SQLite.Column(Select_Statement, 4);
+      Result.Id := Integer(Parent_Id);
+      Result.Namespace := Namespace;
+      Result.Parent_Id := Integer(Result_Parent_Id);
+      Result.Depth := Depth - 1;
+      Result.Name := Name;
+
+
+      return Result;
+   end Find_Album;
 
    procedure Add_Album
-     (T    : in out Trees.Tree;
-      Stat : in out Status.Status_Map.Map;
-      Path :        Album_Path)
-   is
-      use Trees;
-      C         : Trees.Cursor    := T.Root;
-      Result    : Trees.Cursor;
-      Item      : Album_Info;
-      Unique_Id : file_sha1.Sha1_value;
-      Seed      : constant String := Status.Get (Stat, "sha1_seed");
+     (DB_Conn : in out SQLite.Data_Base;
+      Namespace : UBS.Unbounded_String;
+      Path :        Album_Path) is
    begin
-      for Name of Path loop
-         Result := Find_In_Branch (C, Name);
-         if Result = Trees.No_Element then
-            Unique_Id      := file_sha1.String_Hash (Seed & Seed);
-            Item.Unique_Id := Unique_Id;
-            Item.Name      := Name;
-            T.Insert_Child (C, Trees.No_Element, Item, Position => C);
-            Status.Set (Stat, "sha1_seed", Unique_Id);
-         else
-            C := Result;
-         end if;
-      end loop;
+
    end Add_Album;
 
-   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer; Stat : Status.Status_Map.Map) is
-      use Trees;
-      Next_Item     : Trees.Cursor;
-      Status_Symbol : Character := ' ';
-      Head_Id : constant String := Get_Head_Id(Stat);
+
+
+   procedure Display_Tree (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String) is
    begin
-      Next_Item := Trees.First_Child (Tree_Cursor);
-      while Next_Item /= Trees.No_Element loop
-         if Trees.Element (Next_Item).Unique_Id = Head_Id then
-            Status_Symbol := '@';
-         end if;
-         Ada.Text_IO.Put (Fixed_Str."*" (Level * 4, " "));
-         Ada.Text_IO.Put (Status_Symbol & " ");
-         Ada.Text_IO.Unbounded_IO.Put_Line (Trees.Element (Next_Item).Name);
-         if not Trees.Is_Leaf (Next_Item) then
-            Display_Tree (Next_Item, Level + 1, Stat);
-         end if;
-         Next_Item := Trees.Next_Sibling (Next_Item);
-      end loop;
+      null;
    end Display_Tree;
 
-   procedure Remove_Album (Tree_Data : in out Trees.Tree; Path : Album_Path) is
-      use Trees;
-      C      : Trees.Cursor := Tree_Data.Root;
-      Name   : UBS.Unbounded_String;
-      Result : Trees.Cursor;
+   procedure Remove_Album (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String; Path : Album_Path) is
    begin
-      for I in Path'Range loop
-         Name   := Path (I);
-         Result := Find_In_Branch (C, Name);
-         if Result /= Trees.No_Element then
-            if I = Path'Last then
-               if not Trees.Is_Leaf (Result) then
-                  Trees.Delete_Children (Tree_Data, Result);
-               end if;
-               Trees.Delete_Leaf (Tree_Data, Result);
-            end if;
-            C := Result;
-         else
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Standard_Error,
-               "cannot find album");
-            exit;
-         end if;
-      end loop;
+      null;
    end Remove_Album;
 
-   procedure Checkout_Album (Tree_Data : Trees.Tree; Path : Album_Path; Stat : in out Status.Status_Map.Map) is
-      use Trees;
-      C      : Trees.Cursor := Tree_Data.Root;
-      Name   : UBS.Unbounded_String;
-      Result : Trees.Cursor;
+   procedure Checkout_Album
+     (DB_Conn : SQLite.Data_Base;
+      Namespace : UBS.Unbounded_String;
+      Path : Album_Path;
+      Stat : in out Status.Status_Map.Map) is
    begin
-      for I in Path'Range loop
-         Name   := Path (I);
-         Result := Find_In_Branch (C, Name);
-         if Result /= Trees.No_Element then
-            if I = Path'Last then
-               Status.Set(Stat, "head_album_id", Trees.Element(Result).Unique_Id);
-            end if;
-            C := Result;
-         else
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Standard_Error,
-               "cannot find album");
-            exit;
-         end if;
-      end loop;
+      null;
    end Checkout_Album;
 
    function Get_Head_Id(Stat : Status.Status_Map.Map) return File_Sha1.Sha1_value is

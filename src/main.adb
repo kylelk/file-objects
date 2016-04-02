@@ -31,7 +31,6 @@ procedure main is
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
 
-   Root_Album_Tree : album.Trees.Tree;
    Project_Status  : Status.Status_Map.Map;
 
    function "+"
@@ -121,8 +120,7 @@ procedure main is
    end add_files;
 
    procedure add_new_album_cmd
-     (Tree_Data : in out album.Trees.Tree;
-      Stat      : in out Status.Status_Map.Map)
+     (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String)
    is
       Path : album.Album_Path (1 .. (CLI.Argument_Count - 1));
    begin
@@ -130,7 +128,7 @@ procedure main is
          for I in 2 .. CLI.Argument_Count loop
             Path (I - 1) := +CLI.Argument (I);
          end loop;
-         album.Add_Album (Tree_Data, Stat, Path);
+         album.Add_Album (DB_Conn, Namespace, Path);
       exception
          when Constraint_Error =>
             TIO.Put_Line (File => Standard_Error, Item => "duplicate album");
@@ -229,12 +227,12 @@ procedure main is
       end if;
    end Edit_Namespace_Cmd;
 
-   procedure Edit_Album_Cmd (Current_Album : in out album.Trees.Tree) is
+   procedure Edit_Album_Cmd (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String) is
       Path : album.Album_Path (1 .. (CLI.Argument_Count - 2));
    begin
       if CLI.Argument_Count = 2 then
          if CLI.Argument (2) = "tree" then
-            album.Display_Tree (Current_Album.Root, 0, Project_Status);
+            album.Display_Tree (DB_Conn, Namespace);
          end if;
       elsif CLI.Argument_Count > 1 then
          for I in 3 .. CLI.Argument_Count loop
@@ -242,15 +240,14 @@ procedure main is
          end loop;
 
          if CLI.Argument (2) = "remove" then
-            album.Remove_Album (Current_Album, Path);
+            album.Remove_Album (DB_Conn, Namespace, Path);
          elsif CLI.Argument (2) = "checkout" then
-            album.Checkout_Album (Current_Album, Path, Project_Status);
+            album.Checkout_Album (DB_Conn, Namespace, Path, Project_Status);
          end if;
       end if;
    end Edit_Album_Cmd;
 
-   Current_Namespace_Name : UBS.Unbounded_String;
-   pragma Unreferenced (Current_Namespace_Name);
+   Current_Namespace : UBS.Unbounded_String;
    DB_Conn : SQLite.Data_Base;
 begin
 
@@ -262,7 +259,7 @@ begin
 
    Status.Set_Default_Value (Project_Status, "sha1_seed", file_sha1.Rand_Sha1);
 
-   Current_Namespace_Name :=
+   Current_Namespace :=
      UBS.To_Unbounded_String
        (Status.Get (Project_Status, "current_namespace"));
 
@@ -278,11 +275,11 @@ begin
          add_files;
 
       elsif CLI.Argument (1) = "album" then
-         Edit_Album_Cmd (Root_Album_Tree);
+         Edit_Album_Cmd (DB_Conn, Current_Namespace);
 
       elsif CLI.Argument (1) = "new" then
          if CLI.Argument_Count > 1 then
-            add_new_album_cmd (Root_Album_Tree, Project_Status);
+            add_new_album_cmd (DB_Conn, Current_Namespace);
          else
             TIO.Put_Line ("enter a an album tree path");
          end if;

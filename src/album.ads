@@ -14,6 +14,8 @@ package album is
    package Fixed_Str renames Ada.Strings.Fixed;
    use UBS;
 
+   No_Album_Exception : exception;
+
    type Album_Path is array (Positive range <>) of UBS.Unbounded_String;
 
    package Namespace_Map is new Ada.Containers.Ordered_Maps
@@ -43,7 +45,7 @@ package album is
 
    function Namespace_Exists(DB_Conn : in out SQLite.Data_Base; Name : String) return Boolean;
 
-   type Album_Info is tagged record
+   type Album_Info is record
       Id : Integer;
       Namespace : UBS.Unbounded_String;
       Depth : Integer;
@@ -56,18 +58,22 @@ package album is
 
    package Trees is new Ada.Containers.Multiway_Trees (Album_Info);
 
+   function Find_Album
+     (DB_Conn : in out SQLite.Data_Base;
+      Namespace : UBS.Unbounded_String;
+      Path :        Album_Path) return Album_Info;
    procedure Add_Album
-     (T    : in out Trees.Tree;
-      Stat : in out Status.Status_Map.Map;
+     (DB_Conn : in out SQLite.Data_Base;
+      Namespace : UBS.Unbounded_String;
       Path :        Album_Path);
    procedure Save_Albums (Tree_Data : Trees.Tree; File_Path : String);
    procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String);
-   procedure Display_Tree (Tree_Cursor : Trees.Cursor; Level : Integer; Stat : Status.Status_Map.Map);
-   function Find_In_Branch
-     (C    : Trees.Cursor;
-      Name : UBS.Unbounded_String) return Trees.Cursor;
-   procedure Remove_Album(Tree_Data : in out Trees.Tree; Path : Album_Path);
-   procedure Checkout_Album(Tree_Data : Trees.Tree; Path : Album_Path; Stat : in out Status.Status_Map.Map);
-   -- when no result is found then an empty SHA-1 hash is returned
+   procedure Display_Tree (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String);
+   procedure Remove_Album(DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String; Path : Album_Path);
+   procedure Checkout_Album
+     (DB_Conn : SQLite.Data_Base;
+      Namespace : UBS.Unbounded_String;
+      Path : Album_Path;
+      Stat : in out Status.Status_Map.Map);
    function Get_Head_Id(Stat : Status.Status_Map.Map) return File_Sha1.Sha1_Value;
 end album;
