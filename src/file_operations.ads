@@ -1,5 +1,3 @@
-with Ada.Directories;
-with GNAT.Directory_Operations;
 with Ada.Streams.Stream_IO;
 
 package file_operations is

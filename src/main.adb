@@ -6,6 +6,7 @@ with Ada.Characters.Handling;
 with GNAT.Directory_Operations;
 with Ada.IO_Exceptions;
 with Ada.Command_Line;
+with SQLite;
 
 -- project imports
 with config;
@@ -287,6 +288,7 @@ procedure main is
    Album_Namespaces          : album.Namespace_Map.Map;
    Current_Namespace_Pointer : file_sha1.Sha1_value;
    Current_Namespace_Name    : UBS.Unbounded_String;
+   DB_Conn   : SQLite.Data_Base;
 begin
 
    create_directories;
@@ -298,7 +300,7 @@ begin
       "sha1_seed",
       File_Sha1.Rand_Sha1);
    
-   Data_Source.Load;
+   Data_Source.Load(DB_Conn);
 
    album.Load (Album_Namespaces, config.Album_Refs_File);
    Current_Namespace_Name :=

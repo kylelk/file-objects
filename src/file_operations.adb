@@ -1,6 +1,7 @@
+with Ada.Directories;
+
 package body file_operations is
     use Ada.Directories;
-    use GNAT.Directory_Operations;
     
    procedure remake_directory(path : String) is 
    begin

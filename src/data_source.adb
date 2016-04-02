@@ -1,16 +1,82 @@
-with SQLite;
 with Ada.Text_IO;
+with config;
+
 package body Data_Source is
 
-   procedure Load is
-      DB_Conn   : SQLite.Data_Base;
+   procedure Load (DB_Conn : in out SQLite.Data_Base) is
       Command : SQLite.Statement;
    begin
-      DB_Conn := SQLite.Open ("sqlite.db");
+      DB_Conn := SQLite.Open (config.Database_File);
+
+      SQLite.Exec (DB_Conn, "PRAGMA foreign_keys = ON;");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE TABLE IF NOT EXISTS namespaces ( " &
+         "title VARCHAR(255) PRIMARY KEY NOT NULL, " &
+         "head_album_id INTEGER);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE UNIQUE INDEX IF NOT EXISTS namespace_index ON " &
+         "namespaces(title)");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE TABLE IF NOT EXISTS files ( " &
+         "id INTEGER PRIMARY KEY AUTOINCREMENT, " &
+         "sha1 VARCHAR(40) NOT NULL, added_at INTEGER, file_size INTEGER, " &
+         "filename VARCHAR(255));");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE UNIQUE INDEX IF NOT EXISTS files_sha1_index ON files (sha1);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE TABLE IF NOT EXISTS albums ( " &
+         "id INTEGER PRIMARY KEY AUTOINCREMENT, " &
+         "namespace VARCHAR(255) NOT NULL, " &
+         "depth INTEGER NOT NULL, " &
+         "parent_id INTEGER, " &
+         "title VARCHAR(255) NOT NULL, " &
+         "FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE, " &
+         "FOREIGN KEY (namespace) REFERENCES namespaces(title) ON DELETE CASCADE);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE UNIQUE INDEX IF NOT EXISTS album_title_index ON " &
+         "albums (namespace, parent_id, title);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE TABLE IF NOT EXISTS album_hierarchy ( " &
+         "depth INTEGER NOT NULL, " &
+         "album_id INTEGER NOT NULL, " &
+         "album_parent_id INTEGER, " &
+         "FOREIGN KEY(album_id) REFERENCES albums (id) ON DELETE CASCADE);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE UNIQUE INDEX IF NOT EXISTS album_hierarchy_index ON " &
+         "album_hierarchy (depth, album_id, album_parent_id);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE TABLE IF NOT EXISTS album_files( " &
+         "album_id INTEGER NOT NULL, " &
+         "file_id INTEGER NOT NULL, " &
+         "FOREIGN KEY(album_id) REFERENCES albums(id) ON DELETE CASCADE, " &
+         "FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE);");
+
+      SQLite.Exec
+        (DB_Conn,
+         "CREATE UNIQUE INDEX IF NOT EXISTS album_files_index ON " &
+         "album_files(album_id, file_id);");
 
       Command := SQLite.Prepare (DB_Conn, "select sqlite_version();");
-      SQLite.Step(Command);
-      Ada.Text_IO.Put_Line(SQLite.Column(Command, 1));
+      SQLite.Step (Command);
+      Ada.Text_IO.Put_Line (SQLite.Column (Command, 1));
    end Load;
 
    procedure Save is
