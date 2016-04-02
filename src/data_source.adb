@@ -1,10 +1,8 @@
-with Ada.Text_IO;
 with config;
 
 package body Data_Source is
 
    procedure Load (DB_Conn : in out SQLite.Data_Base) is
-      Command : SQLite.Statement;
    begin
       DB_Conn := SQLite.Open (config.Database_File);
 
@@ -25,7 +23,9 @@ package body Data_Source is
         (DB_Conn,
          "CREATE TABLE IF NOT EXISTS files ( " &
          "id INTEGER PRIMARY KEY AUTOINCREMENT, " &
-         "sha1 VARCHAR(40) NOT NULL, added_at INTEGER, file_size INTEGER, " &
+         "sha1 VARCHAR(40) NOT NULL, " &
+         "added_at INTEGER, " &
+         "file_size INTEGER, " &
          "filename VARCHAR(255));");
 
       SQLite.Exec
@@ -73,13 +73,10 @@ package body Data_Source is
         (DB_Conn,
          "CREATE UNIQUE INDEX IF NOT EXISTS album_files_index ON " &
          "album_files(album_id, file_id);");
-
-      Command := SQLite.Prepare (DB_Conn, "select sqlite_version();");
-      SQLite.Step (Command);
-      Ada.Text_IO.Put_Line (SQLite.Column (Command, 1));
    end Load;
 
-   procedure Save is
+   procedure Save(DB_Conn: in out SQLite.Data_Base) is
+      pragma Unreferenced(DB_Conn);
    begin
       null;
    end Save;

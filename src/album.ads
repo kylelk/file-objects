@@ -3,6 +3,7 @@ with Ada.Containers.Multiway_Trees;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
+with SQLite;
 
 with file_sha1;
 with Status;
@@ -19,14 +20,14 @@ package album is
      (Key_Type     => UBS.Unbounded_String,
       Element_Type => file_sha1.Sha1_value);
 
-   procedure Create
-     (Map  : in out Namespace_Map.Map;
+   procedure Create_Namespace
+     (DB_Conn : in out SQLite.Data_Base;
       Name :        UBS.Unbounded_String);
-   procedure Create (Map : in out Namespace_Map.Map; Name : String);
-   procedure Remove (Map : in out Namespace_Map.Map; Name : String);
+   procedure Create_Namespace (DB_Conn : in out SQLite.Data_Base; Name : String);
+   procedure Remove_Namespace (DB_Conn : in out SQLite.Data_Base; Name : String);
    procedure Load (Map : out Namespace_Map.Map; Path : String);
    procedure Save (Map : in Namespace_Map.Map; Path : String);
-   procedure Display_Namespaces (Map : Namespace_Map.Map);
+   procedure Display_Namespaces (DB_Conn : SQLite.Data_Base);
 
    function Namespace_Pointer
      (Map  : Namespace_Map.Map;
@@ -39,6 +40,8 @@ package album is
      (Map     : in out Namespace_Map.Map;
       Name    : UBS.Unbounded_String;
       Pointer : file_sha1.Sha1_value);
+
+   function Namespace_Exists(DB_Conn : in out SQLite.Data_Base; Name : String) return Boolean;
 
    type Album_Info is tagged record
       Unique_Id       : file_sha1.Sha1_value;

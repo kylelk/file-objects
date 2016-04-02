@@ -1,6 +1,7 @@
 with Ada.Text_IO.Unbounded_IO;
 with Ada.IO_Exceptions;
 with Ada.Text_IO;
+with Interfaces.C;
 
 package body album is
 
@@ -14,26 +15,29 @@ package body album is
       return a.Name < b.Name;
    end ">";
 
-   procedure Create
-     (Map  : in out Namespace_Map.Map;
+   procedure Create_Namespace
+     (DB_Conn : in out SQLite.Data_Base;
       Name :        UBS.Unbounded_String)
    is
    begin
-      Namespace_Map.Insert (Map, Name, file_sha1.Empty_Sha1);
-   end Create;
+      Create_Namespace (DB_Conn, UBS.To_String (Name));
+   end Create_Namespace;
 
-   procedure Create (Map : in out Namespace_Map.Map; Name : String) is
+   procedure Create_Namespace (DB_Conn : in out SQLite.Data_Base; Name : String) is
+      Insert_Statement : SQLite.Statement;
    begin
-      Create (Map, UBS.To_Unbounded_String (Name));
-   end Create;
+      Insert_Statement := SQLite.Prepare(DB_Conn, "INSERT INTO namespaces (title) VALUES (?);");
+      SQLite.Bind(Insert_Statement, 1, Name);
+      SQLite.Step(Insert_Statement);
+   end Create_Namespace;
 
-   procedure Remove (Map : in out Namespace_Map.Map; Name : String) is
-      Result_Cursor : Namespace_Map.Cursor;
+   procedure Remove_Namespace (DB_Conn : in out SQLite.Data_Base; Name : String) is
+      Delete_Statement : SQLite.Statement;
    begin
-      Result_Cursor :=
-        Namespace_Map.Find (Map, UBS.To_Unbounded_String (Name));
-      Namespace_Map.Delete (Map, Result_Cursor);
-   end Remove;
+      Delete_Statement := SQLite.Prepare(DB_Conn, "DELETE FROM namespaces WHERE title=?;");
+      SQLite.Bind(Delete_Statement, 1, Name);
+      SQLite.Step(Delete_Statement);
+   end Remove_Namespace;
 
    procedure Load (Map : out Namespace_Map.Map; Path : String) is
       File_Handle : STIO.File_Type;
@@ -62,12 +66,13 @@ package body album is
       STIO.Close (File_Handle);
    end Save;
 
-   procedure Display_Namespaces (Map : Namespace_Map.Map) is
-      Map_Cursor : Namespace_Map.Cursor := Namespace_Map.First (Map);
+   procedure Display_Namespaces (DB_Conn : SQLite.Data_Base) is
+      Query_Statement : SQLite.Statement;
    begin
-      for I in 1 .. (Namespace_Map.Length (Map)) loop
-         Ada.Text_IO.Unbounded_IO.Put_Line (Namespace_Map.Key (Map_Cursor));
-         Namespace_Map.Next (Map_Cursor);
+      Query_Statement := SQLite.Prepare(DB_Conn, "SELECT title FROM namespaces " &
+                                          "ORDER BY title;");
+      while SQLite.Step(Query_Statement) loop
+         Ada.Text_IO.Put_Line(SQLite.Column(Query_Statement, 1));
       end loop;
    end Display_Namespaces;
 
@@ -87,6 +92,17 @@ package body album is
    begin
       Namespace_Map.Replace (Map, Name, Pointer);
    end Update_Namespace;
+
+   function Namespace_Exists(DB_Conn : in out SQLite.Data_Base; Name : String) return Boolean is
+      Query_Statement : SQLite.Statement;
+      use Interfaces.C;
+   begin
+      Query_Statement := SQLite.Prepare(DB_Conn, "SELECT COUNT(title) FROM namespaces WHERE title=?;");
+      SQLite.Bind(Query_Statement, 1, Name);
+      SQLite.Step(Query_Statement);
+      return SQLite.Column(Query_Statement, 1) = Int(1);
+   end Namespace_Exists;
+
 
    procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String) is
       File_Handle : STIO.File_Type;
