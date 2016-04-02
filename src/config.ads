@@ -14,9 +14,6 @@ package config is
 
    Status_File : constant String := Format_Pathname (project_dir & "/status");
 
-   Album_Refs_File : constant String :=
-     Format_Pathname (project_dir & "/album_refs");
-
    Database_File : constant String := Format_Pathname(Project_Dir & "/data.sqlite");
 
    Default_Album_Namespace : constant String := "default";

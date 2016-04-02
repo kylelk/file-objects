@@ -81,7 +81,6 @@ procedure main is
 
    procedure create_files is
    begin
-      file_operations.create_empty_file (config.Album_Refs_File);
       file_operations.create_empty_file (config.Status_File);
       -- create a blank object
       file_operations.create_empty_file
