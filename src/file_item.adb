@@ -31,6 +31,7 @@ package body file_item is
       Is_New : Boolean;
    begin
       item.sha1       := file_sha1.get_file_sha1 (path);
+
       item.File_Size  := Integer (Ada.Directories.Size (path));
       item.Extension := To_Unbounded_String (Ada.Directories.Extension (path));
       item.Created_At := Ada.Calendar.Clock;

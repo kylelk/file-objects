@@ -294,7 +294,8 @@ begin
          if CLI.Argument_Count > 1 then
             Add_Files (DB_Conn, Current_Namespace, CLI.Argument(2));
          else
-            Add_Files (DB_Conn, Current_Namespace);
+            -- Add_Files (DB_Conn, Current_Namespace);
+            null;
          end if;
          
 
@@ -315,7 +316,7 @@ begin
          CLI.Set_Exit_Status (CLI.Failure);
       end if;
    end if;
-
+   
    Status.Save (Project_Status, config.Status_File);
    clear_temp_dir;
 end main;
