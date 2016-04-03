@@ -1,5 +1,4 @@
 with Ada.Containers.Ordered_Maps;
-with Ada.Containers.Multiway_Trees;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
@@ -68,8 +67,6 @@ package album is
    function "<" (a, b : Album_Info) return Boolean;
    function ">" (a, b : Album_Info) return Boolean;
 
-   package Trees is new Ada.Containers.Multiway_Trees (Album_Info);
-
    function Find_Album
      (DB_Conn   : in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
@@ -83,8 +80,6 @@ package album is
       Namespace :        UBS.Unbounded_String;
       Path      :        Album_Path;
       Result    :    out Album_Info) return Boolean;
-   procedure Save_Albums (Tree_Data : Trees.Tree; File_Path : String);
-   procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String);
    procedure Display_Tree
      (DB_Conn   : in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String);

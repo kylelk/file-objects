@@ -134,34 +134,6 @@ package body album is
       return SQLite.Column (Query_Statement, 1) = int (1);
    end Namespace_Exists;
 
-   procedure Load_Albums (Tree_Data : out Trees.Tree; File_Path : String) is
-      File_Handle : STIO.File_Type;
-      Data_Stream : STIO.Stream_Access;
-   begin
-      begin
-         STIO.Open (File_Handle, STIO.In_File, File_Path);
-         Data_Stream := STIO.Stream (File_Handle);
-         Trees.Tree'Read (Data_Stream, Tree_Data);
-         STIO.Close (File_Handle);
-      exception
-         when Ada.IO_Exceptions.End_Error =>
-            null;
-         when Ada.IO_Exceptions.Name_Error =>
-            null;
-      end;
-   end Load_Albums;
-
-   procedure Save_Albums (Tree_Data : Trees.Tree; File_Path : String) is
-      File_Handle : STIO.File_Type;
-      Data_Stream : STIO.Stream_Access;
-   begin
-      STIO.Create (File_Handle, STIO.Out_File, File_Path);
-      Data_Stream := STIO.Stream (File_Handle);
-      STIO.Reset (File_Handle);
-      Trees.Tree'Write (Data_Stream, Tree_Data);
-      STIO.Close (File_Handle);
-   end Save_Albums;
-
    function Find_Album
      (DB_Conn   : in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
