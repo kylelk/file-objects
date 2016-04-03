@@ -20,5 +20,7 @@ package config is
 
    Default_Album_Namespace : constant String := "default";
 
+   Checkout_Limit : constant Integer := 1000;
+
    procedure display_help;
 end config;

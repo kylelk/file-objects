@@ -3,14 +3,19 @@ with Ada.Containers.Multiway_Trees;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
+with Ada.Directories;
+with GNAT.Directory_Operations;
 with SQLite;
 
 with file_sha1;
+with file_item;
 
 package album is
    package STIO renames Ada.Streams.Stream_IO;
    package UBS renames Ada.Strings.Unbounded;
    package Fixed_Str renames Ada.Strings.Fixed;
+   package DIRS renames Ada.Directories;
+   package DIR_OPS renames GNAT.Directory_Operations;
    use UBS;
 
    No_Album_Exception : exception;
@@ -88,11 +93,31 @@ package album is
       Namespace :        UBS.Unbounded_String;
       Path      :        Album_Path);
    procedure Checkout_Album
-     (DB_Conn   :    in out SQLite.Data_Base;
+     (DB_Conn   : in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
       Path      :        Album_Path);
-   procedure Checkout(DB_Conn : SQLite.Data_Base; Item : Album_Info);
+   procedure Checkout (DB_Conn : in out SQLite.Data_Base; Item : Album_Info);
    function From_Row (Row : SQLite.Statement) return Album_Info;
    function Get_Head_Id
-     (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String) return Integer;
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String) return Integer;
+
+   procedure Add_To_Head
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String;
+      Item      :        file_item.File_Info);
+
+   procedure Add_To_Album
+     (DB_Conn  : in out SQLite.Data_Base;
+      Album_Id :        Integer;
+      Item     :        file_item.File_Info);
+
+   function In_Album
+     (DB_Conn  : in out SQLite.Data_Base;
+      Album_Id :        Integer;
+      Item     :        file_item.File_Info) return Boolean;
+
+   procedure Checkout_Album_Files
+     (DB_Conn  : in out SQLite.Data_Base;
+      Album_Id :        Integer);
 end album;

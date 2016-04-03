@@ -115,6 +115,7 @@ procedure main is
             begin
                begin
                   File_Item.Create (DB_Conn, Item, Path);
+                  Album.Add_To_Head(DB_Conn, Namespace, item);
                   if Item.Is_New then
                      TIO.Put_Line (Item.sha1 & " " & path);
                   end if;

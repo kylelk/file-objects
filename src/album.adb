@@ -3,6 +3,8 @@ with Ada.Text_IO;
 with Interfaces.C;
 with Color_Text;
 
+with config;
+
 package body album is
    function "<" (a, b : Album_Info) return Boolean is
    begin
@@ -85,12 +87,16 @@ package body album is
            "SELECT title FROM namespaces " & "ORDER BY title;");
       while SQLite.Step (Query_Statement) loop
 
-         if To_Unbounded_String(SQLite.Column (Query_Statement, 1)) = Current then
-            Ada.Text_IO.Put("* ");
-            Color_Text.Put (SQLite.Column (Query_Statement, 1), Color_Text.Green);
+         if To_Unbounded_String (SQLite.Column (Query_Statement, 1)) =
+           Current
+         then
+            Ada.Text_IO.Put ("* ");
+            Color_Text.Put
+              (SQLite.Column (Query_Statement, 1),
+               Color_Text.Green);
             Ada.Text_IO.New_Line;
          else
-            Ada.Text_IO.Put_Line("  " & SQLite.Column (Query_Statement, 1));
+            Ada.Text_IO.Put_Line ("  " & SQLite.Column (Query_Statement, 1));
          end if;
       end loop;
    end Display_Namespaces;
@@ -311,8 +317,8 @@ package body album is
       Item : Album_Info;
       type Result_Array is array (Integer range <>) of Album_Info;
       Result_Count : Interfaces.C.int;
-      Result_Index : Integer := 1;
-      Head_Id : constant Integer := Get_Head_Id(DB_Conn, Namespace);
+      Result_Index : Integer          := 1;
+      Head_Id      : constant Integer := Get_Head_Id (DB_Conn, Namespace);
 
       procedure Display_Level (Items : Result_Array; Parent_Id : Integer) is
          use Fixed_Str;
@@ -323,7 +329,7 @@ package body album is
                Ada.Text_IO.Put ((Indentation * Item.Depth) * " ");
                Ada.Text_IO.Put ("[" & Item.Id'Img & "] ");
                if Item.Id = Head_Id then
-                  Color_Text.Put(UBS.To_String(Item.Name), Color_Text.Green);
+                  Color_Text.Put (UBS.To_String (Item.Name), Color_Text.Green);
                   Ada.Text_IO.New_Line;
                else
                   Ada.Text_IO.Put_Line (UBS.To_String (Item.Name));
@@ -374,28 +380,28 @@ package body album is
    end Remove_Album;
 
    procedure Checkout_Album
-     (DB_Conn   :    in out SQLite.Data_Base;
+     (DB_Conn   : in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
       Path      :        Album_Path)
    is
       Result : Album_Info;
    begin
-      Result := Find_Album(DB_Conn, Namespace, path);
-      Checkout(DB_Conn, Result);
+      Result := Find_Album (DB_Conn, Namespace, Path);
+      Checkout (DB_Conn, Result);
    end Checkout_Album;
 
-   procedure Checkout(DB_Conn : SQLite.Data_Base; Item : Album_Info) is
+   procedure Checkout (DB_Conn : in out SQLite.Data_Base; Item : Album_Info) is
       use Interfaces.C;
       Update_Statement : SQLite.Statement;
-      Update_SQL : constant String := "UPDATE namespaces " &
-        "SET head_album_id=? WHERE title=?;";
+      Update_SQL       : constant String :=
+        "UPDATE namespaces " & "SET head_album_id=? WHERE title=?;";
    begin
-      Update_Statement := SQLite.Prepare(DB_Conn, Update_SQL);
-      Update_Statement.Bind(1, Int(Item.Id));
-      Update_Statement.Bind(2, UBS.To_String(Item.Namespace));
+      Update_Statement := SQLite.Prepare (DB_Conn, Update_SQL);
+      Update_Statement.Bind (1, int (Item.Id));
+      Update_Statement.Bind (2, UBS.To_String (Item.Namespace));
       Update_Statement.Step;
+      Checkout_Album_Files (DB_Conn, Item.Id);
    end Checkout;
-
 
    function From_Row (Row : SQLite.Statement) return Album_Info is
       use Interfaces.C;
@@ -413,19 +419,121 @@ package body album is
    end From_Row;
 
    function Get_Head_Id
-     (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String) return Integer
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String) return Integer
    is
       use Interfaces.C;
       Query_Statement : SQLite.Statement;
-      Query_SQL : constant String := "SELECT head_album_id from namespaces " &
-        "WHERE title=?";
+      -- added is not null check to not return result when head is null
+      Query_SQL : constant String :=
+        "SELECT head_album_id from namespaces " &
+        "WHERE title=? and head_album_id is not NULL";
    begin
-      Query_Statement := SQLite.Prepare(DB_Conn, Query_SQL);
-      Query_Statement.Bind(1, UBS.To_String(Namespace));
+      Query_Statement := SQLite.Prepare (DB_Conn, Query_SQL);
+      Query_Statement.Bind (1, UBS.To_String (Namespace));
       if Query_Statement.Step then
-         return Integer(Int'Value(Query_Statement.Column(1)));
+         return Integer (int'Value (Query_Statement.Column (1)));
       else
          return -1;
       end if;
    end Get_Head_Id;
+
+   procedure Add_To_Head
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String;
+      Item      :        file_item.File_Info)
+   is
+
+      Head_Id : constant Integer := Get_Head_Id (DB_Conn, Namespace);
+   begin
+      if Head_Id > 0 then
+         Add_To_Album (DB_Conn, Head_Id, Item);
+      end if;
+   end Add_To_Head;
+
+   procedure Add_To_Album
+     (DB_Conn  : in out SQLite.Data_Base;
+      Album_Id :        Integer;
+      Item     :        file_item.File_Info)
+   is
+      use Interfaces.C;
+      Insert_Statement : SQLite.Statement;
+      Insert_SQL : constant String := "INSERT INTO album_files VALUES(?,?);";
+
+   begin
+      if Album_Id > 0 and Item.Id > 0 then
+         if not In_Album (DB_Conn, Album_Id, Item) then
+            Insert_Statement := DB_Conn.Prepare (Insert_SQL);
+            Insert_Statement.Bind (1, int (Album_Id));
+            Insert_Statement.Bind (2, int (Item.Id));
+            Insert_Statement.Step;
+         end if;
+      end if;
+   end Add_To_Album;
+
+   function In_Album
+     (DB_Conn  : in out SQLite.Data_Base;
+      Album_Id :        Integer;
+      Item     :        file_item.File_Info) return Boolean
+   is
+      use Interfaces.C;
+      Query_Statement : SQLite.Statement;
+      Query_SQL       : constant String :=
+        "SELECT * FROM album_files WHERE " & "album_id=? AND file_id=?;";
+   begin
+      Query_Statement := SQLite.Prepare (DB_Conn, Query_SQL);
+      Query_Statement.Bind (1, int (Album_Id));
+      Query_Statement.Bind (2, int (Item.Id));
+      return Query_Statement.Step;
+   end In_Album;
+
+   procedure Checkout_Album_Files
+     (DB_Conn  : in out SQLite.Data_Base;
+      Album_Id :        Integer)
+   is
+      Query_Statement : SQLite.Statement;
+      Query_SQL       : constant String :=
+        "WITH RECURSIVE " &
+        "under_alice(id, level) AS ( " &
+        "VALUES (?, 0) " &
+        "UNION ALL " &
+        "SELECT " &
+        "albums.id, " &
+        "under_alice.level + 1 " &
+        "FROM Albums " &
+        "JOIN under_alice ON albums.parent_id = under_alice.id " &
+        "ORDER BY 2) " &
+        "SELECT DISTINCT files.* " &
+        "FROM under_alice " &
+        "JOIN album_files ON album_files.album_id = under_alice.id " &
+        "JOIN files ON album_files.file_id = files.id";
+      Result         : file_item.File_Info;
+      Checkout_Count : Integer := 0;
+   begin
+      Query_Statement := DB_Conn.Prepare (Query_SQL);
+      Query_Statement.Bind (1, Interfaces.C.int (Album_Id));
+      while Query_Statement.Step and Checkout_Count < config.Checkout_Limit
+      loop
+         Result := file_item.From_Row (Query_Statement);
+
+         if UBS.Length (Result.Extension) > 0 then
+            DIRS.Copy_File
+              (file_item.Get_Path (Result),
+               DIR_OPS.Format_Pathname
+                 (config.Checkout_Dir &
+                  "/" &
+                  Result.sha1 &
+                  "." &
+                  UBS.To_String (Result.Extension)));
+
+         else
+            DIRS.Copy_File
+              (file_item.Get_Path (Result),
+               DIR_OPS.Format_Pathname
+                 (config.Checkout_Dir & "/" & Result.sha1));
+         end if;
+         Checkout_Count := Checkout_Count + 1;
+      end loop;
+   end Checkout_Album_Files;
+
 end album;

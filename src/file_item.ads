@@ -10,19 +10,21 @@ package file_item is
    package UBS renames Ada.Strings.Unbounded;
    package STIO renames Ada.Streams.Stream_IO;
 
-   type file_info is record
-      Id         : Integer;
+   File_Not_Found : exception;
+
+   type File_Info is record
+      Id         : Integer := -1;
       sha1       : file_sha1.Sha1_value;
       Extension  : Unbounded_String;
       Created_At : Ada.Calendar.Time;
-      File_Size  : Integer;
+      File_Size  : Integer := -1;
       Filename   : Unbounded_String;
       Is_New : Boolean := True;
    end record;
 
-   function get_path (item : file_info) return String;
-   function get_path (Sha1 : file_sha1.Sha1_value) return String;
-   procedure create
+   function Get_Path (Item : File_Info) return String;
+   function Get_Path (Sha1 : File_Sha1.Sha1_Value) return String;
+   procedure Create
      (DB_Conn : in out SQLite.Data_Base;
       item    : in out file_info;
       path    :        String);
@@ -32,5 +34,9 @@ package file_item is
      (DB_Conn : in out SQLite.Data_Base;
       Sha1    :        file_sha1.Sha1_value) return Boolean;
 
-   -- function get_by_sha1(sha1 : String) return file_info;
+   function Find_By_Sha1
+     (DB_Conn : in out SQLite.Data_Base;
+      Sha1    :        File_Sha1.Sha1_Value) return File_Info;
+
+   function From_Row(Row : SQLite.Statement) return File_Info;
 end file_item;
