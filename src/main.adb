@@ -4,6 +4,7 @@ with Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
 with Ada.Characters.Handling;
 with GNAT.Directory_Operations;
 with Ada.IO_Exceptions;
@@ -30,8 +31,9 @@ procedure main is
    package CLI renames Ada.Command_Line;
    package TIO renames Ada.Text_IO;
    package DIR_OPS renames GNAT.Directory_Operations;
+   package UBS renames Ada.Strings.Unbounded;
 
-   Project_Status  : Status.Status_Map.Map;
+   Project_Status : Status.Status_Map.Map;
 
    function "+"
      (S : String) return UBS.Unbounded_String is
@@ -70,6 +72,7 @@ procedure main is
       Create_New_Dir (config.Project_Dir);
       Create_New_Dir (config.Object_Dir);
       Create_New_Dir (config.Temp_Dir);
+      Create_New_Dir (config.Checkout_Dir);
 
       for I in 0 .. 255 loop
          prefix := Integer2Hexa (I);
@@ -91,10 +94,14 @@ procedure main is
       file_operations.remake_directory (config.Temp_Dir);
    end clear_temp_dir;
 
-   procedure add_files is
-      Search    : Search_Type;
-      Dir_Ent   : Directory_Entry_Type;
-      Directory : constant String := ".";
+   procedure Add_Files
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String;
+      Directory :        String := ".")
+   is
+
+      Search  : Search_Type;
+      Dir_Ent : Directory_Entry_Type;
    begin
       Ada.Directories.Start_Search (Search, Directory, "");
       while More_Entries (Search) loop
@@ -104,23 +111,26 @@ procedure main is
          then
             add_file : declare
                item : file_item.file_info;
+               Path : constant String := DIR_OPS.Format_Pathname(Directory & "/" & Simple_Name(Dir_Ent));
             begin
                begin
-                  file_item.create (item, Simple_Name (Dir_Ent));
-                  TIO.Put_Line (item.sha1 & " " & Simple_Name (Dir_Ent));
+                  File_Item.Create (DB_Conn, Item, Path);
+                  if Item.Is_New then
+                     TIO.Put_Line (Item.sha1 & " " & path);
+                  end if;
                exception
                   -- file was empty
-                  when Ada.IO_Exceptions.End_Error =>
-                     null;
+                  when Ada.IO_Exceptions.End_Error => null;
                end;
             end add_file;
          end if;
       end loop;
       Ada.Directories.End_Search (Search);
-   end add_files;
+   end Add_Files;
 
    procedure add_new_album_cmd
-     (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String)
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String)
    is
       Path : album.Album_Path (1 .. (CLI.Argument_Count - 1));
    begin
@@ -204,17 +214,18 @@ procedure main is
       end if;
    end Change_Namespace;
 
-   procedure Edit_Namespace_Cmd 
-     (DB_Conn : in out SQLite.Data_Base) is
+   procedure Edit_Namespace_Cmd (DB_Conn : in out SQLite.Data_Base) is
       Current_Namespace : UBS.Unbounded_String;
    begin
-      Current_Namespace := UBS.To_Unbounded_String(Status.Get (Project_Status, "current_namespace"));
-      
+      Current_Namespace :=
+        UBS.To_Unbounded_String
+          (Status.Get (Project_Status, "current_namespace"));
+
       if CLI.Argument_Count = 2 then
          if CLI.Argument (2) = "list" then
             Display_Namespaces (DB_Conn, Current_Namespace);
          elsif CLI.Argument (2) = "current" then
-            TIO.Put_Line (UBS.To_String(Current_Namespace));
+            TIO.Put_Line (UBS.To_String (Current_Namespace));
          end if;
       elsif CLI.Argument_Count > 1 then
          if CLI.Argument (2) = "new" then
@@ -231,7 +242,10 @@ procedure main is
       end if;
    end Edit_Namespace_Cmd;
 
-   procedure Edit_Album_Cmd (DB_Conn : in out SQLite.Data_Base; Namespace : UBS.Unbounded_String) is
+   procedure Edit_Album_Cmd
+     (DB_Conn   : in out SQLite.Data_Base;
+      Namespace :        UBS.Unbounded_String)
+   is
       Path : album.Album_Path (1 .. (CLI.Argument_Count - 2));
    begin
       if CLI.Argument_Count = 2 then
@@ -252,7 +266,7 @@ procedure main is
    end Edit_Album_Cmd;
 
    Current_Namespace : UBS.Unbounded_String;
-   DB_Conn : SQLite.Data_Base;
+   DB_Conn           : SQLite.Data_Base;
 begin
 
    create_directories;
@@ -276,7 +290,12 @@ begin
          config.display_help;
 
       elsif CLI.Argument (1) = "add" then
-         add_files;
+         if CLI.Argument_Count > 1 then
+            Add_Files (DB_Conn, Current_Namespace, CLI.Argument(2));
+         else
+            Add_Files (DB_Conn, Current_Namespace);
+         end if;
+         
 
       elsif CLI.Argument (1) = "album" then
          Edit_Album_Cmd (DB_Conn, Current_Namespace);

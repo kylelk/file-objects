@@ -12,6 +12,8 @@ package config is
    Temp_Dir : constant String :=
      Format_Pathname (project_dir & "/temp");
 
+   Checkout_Dir : constant String := "checkout";
+
    Status_File : constant String := Format_Pathname (project_dir & "/status");
 
    Database_File : constant String := Format_Pathname(Project_Dir & "/data.sqlite");

@@ -24,7 +24,7 @@ package body Data_Source is
          "CREATE TABLE IF NOT EXISTS files ( " &
          "id INTEGER PRIMARY KEY AUTOINCREMENT, " &
          "sha1 VARCHAR(40) NOT NULL, " &
-         "added_at INTEGER, " &
+         "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " &
          "file_size INTEGER, " &
          "filename VARCHAR(255));");
 
@@ -40,6 +40,7 @@ package body Data_Source is
          "depth INTEGER NOT NULL, " &
          "parent_id INTEGER, " &
          "title VARCHAR(255) NOT NULL, " &
+         "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL, " &
          "FOREIGN KEY (parent_id) REFERENCES albums(id) ON DELETE CASCADE, " &
          "FOREIGN KEY (namespace) REFERENCES namespaces(title) ON DELETE CASCADE);");
 
@@ -75,8 +76,8 @@ package body Data_Source is
          "album_files(album_id, file_id);");
    end Load;
 
-   procedure Save(DB_Conn: in out SQLite.Data_Base) is
-      pragma Unreferenced(DB_Conn);
+   procedure Save (DB_Conn : in out SQLite.Data_Base) is
+      pragma Unreferenced (DB_Conn);
    begin
       null;
    end Save;

@@ -1,58 +1,78 @@
 with Ada.Directories;
 with GNAT.Directory_Operations;
 with config;
+with Interfaces.C;
 
 package body file_item is
    use GNAT.Directory_Operations;
+   package DIRS renames Ada.Directories;
 
-   function Get_Path (Item : File_Info) return String is
+   function get_path (item : file_info) return String is
    begin
-      return Get_Path(Item.sha1);
+      return get_path (item.sha1);
    end get_path;
 
-
-   function Get_Path (Sha1 : File_Sha1.Sha1_Value) return String is
+   function get_path (Sha1 : file_sha1.Sha1_value) return String is
    begin
       return Format_Pathname
-          (config.object_dir & "/" & Sha1 (1 .. 2) & "/" & Sha1);
+          (config.Object_Dir & "/" & Sha1 (1 .. 2) & "/" & Sha1);
    end get_path;
 
+   procedure create
+     (DB_Conn : in out SQLite.Data_Base;
+      item    : in out file_info;
+      path    :        String)
+   is
 
-   procedure create (item : in out file_info; path : String) is
-      Sha1 : String (1 .. 40);
+      use Interfaces.C;
+      Insert_Statement : SQLite.Statement;
+      Insert_SQL       : constant String :=
+        "INSERT INTO files " & "(sha1, file_size, filename) VALUES (?,?,?);";
    begin
-      Sha1              := file_sha1.get_file_sha1 (path);
-      item.sha1         := Sha1;
-      item.Size         := Integer (Ada.Directories.Size (path));
+      item.sha1       := file_sha1.get_file_sha1 (path);
+      item.File_Size  := Integer (Ada.Directories.Size (path));
       item.Extension := To_Unbounded_String (Ada.Directories.Extension (path));
-      item.Added_At     := Ada.Calendar.Clock;
-      item.value_length := (item'Size) / 8;
+      item.Created_At := Ada.Calendar.Clock;
+      item.Filename   := UBS.To_Unbounded_String (DIRS.Simple_Name(path));
 
-      if not Ada.Directories.Exists (get_path (item)) then
-         Ada.Directories.Copy_File (path, get_path (item));
+      if not Object_Exists (item.sha1) then
+         DIRS.Copy_File (path, get_path (item));
+      end if;
+
+      if not File_Saved (DB_Conn, item.sha1) then
+         Insert_Statement := DB_Conn.Prepare (Insert_SQL);
+         Insert_Statement.Bind(1, Item.sha1);
+         Insert_Statement.Bind(2, Int(Item.File_Size));
+         Insert_Statement.Bind(3, UBS.To_String(Item.Filename));
+         if Insert_Statement.Step then
+            Item.Id := Integer(DB_Conn.Last_Insert_Row);
+         end if;
+         Item.Is_New := True;
+      else
+         Item.Is_New := False;
       end if;
    end create;
 
-
-   procedure update (item : in out file_info) is
+   function Object_Exists (Sha1 : file_sha1.Sha1_value) return Boolean is
    begin
-      null;
-   end update;
+      return DIRS.Exists
+          (Format_Pathname
+             (config.Object_Dir &
+              "/" &
+              Sha1 (Sha1'First .. Sha1'First + 1) &
+              "/" &
+              Sha1));
+   end Object_Exists;
 
-
-   function Exists (Sha1 : File_Sha1.Sha1_value) return Boolean is
+   function File_Saved
+     (DB_Conn : in out SQLite.Data_Base;
+      Sha1    :        file_sha1.Sha1_value) return Boolean
+   is
+      Query_Statement : SQLite.Statement;
+      Query_SQL       : constant String := "SELECT * FROM files WHERE sha1=?;";
    begin
-      return Ada.Directories.Exists (Format_Pathname
-          (config.object_dir &
-           "/" &
-           Sha1 (Sha1'First .. Sha1'First + 1) &
-           "/" &
-           Sha1));
-   end Exists;
-
---     function get_by_sha1(sha1 : String) return file_info is
---        result : file_info;
---     begin
---        return result;
---     end get_by_sha1;
+      Query_Statement := SQLite.Prepare (DB_Conn, Query_SQL);
+      Query_Statement.Bind (1, Sha1);
+      return Query_Statement.Step;
+   end File_Saved;
 end file_item;
