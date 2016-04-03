@@ -1,0 +1,84 @@
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mindex a92345d..0f804e3 100644[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@ -6,3 +6,4 @@[m [mobj/*[m
+ *.ali[m
+ *.db[m
+ checkout/*[m
+[32m+[m[32mdemo/*[m
+[1mdiff --git a/src/file_sha1.adb b/src/file_sha1.adb[m
+[1mindex 45ab37b..4f3cfa4 100644[m
+[1m--- a/src/file_sha1.adb[m
+[1m+++ b/src/file_sha1.adb[m
+[36m@@ -1,35 +1,47 @@[m
+ with Ada.Direct_IO;[m
+ with GNAT.SHA1;[m
+ with Ada.Numerics.Discrete_Random;[m
+[31m-with Ada.Text_IO;[m
+[32m+[m[32mwith Ada.Directories;[m
+ [m
+ package body file_sha1 is[m
+    function get_file_sha1 (file_name : String) return Sha1_value is[m
+[32m+[m[32m      File_Size : constant Natural := Natural (Ada.Directories.Size (file_name));[m
+       C         : GNAT.SHA1.Context;[m
+[31m-      Seek_Size : constant Positive := 1;[m
+[32m+[m[32m      Seek_Size : constant Positive := 4096;[m
+       subtype File_String is String (1 .. Seek_Size);[m
+[32m+[m[32m      subtype End_String is String (1 .. 1);[m
+       package File_String_IO is new Ada.Direct_IO (File_String);[m
+[32m+[m[32m      package End_File_IO is new Ada.Direct_IO (End_String);[m
+ [m
+[31m-      use File_String_IO;[m
+       File     : File_String_IO.File_Type;[m
+       Contents : File_String;[m
+[32m+[m[32m      End_Content : End_String;[m
+[32m+[m[32m      End_File : End_File_IO.File_Type;[m
+[32m+[m[32m      Last_Index : Integer := 1;[m
+    begin[m
+[32m+[m
+       File_String_IO.Open[m
+         (File,[m
+          Mode => File_String_IO.In_File,[m
+          Name => file_name);[m
+ [m
+       while not File_String_IO.End_Of_File(File) loop[m
+[31m-         File_String_IO.Read (File => File,[m
+[31m-                              Item => Contents);[m
+[31m-         Ada.Text_IO.Put(Contents);[m
+[31m-[m
+[32m+[m[32m         Last_Index := Last_Index + Seek_Size;[m
+[32m+[m[32m         File_String_IO.Read (File => File, Item => Contents);[m
+          GNAT.SHA1.Update(C, Contents);[m
+[31m-[m
+       end loop;[m
+[31m-      Ada.Text_IO.New_Line;[m
+[31m-[m
+       File_String_IO.Close (File);[m
+[32m+[m
+[32m+[m[32m      if (File_Size mod Seek_Size) > 0 then[m
+[32m+[m[32m         End_File_IO.Open(End_File, End_File_IO.In_File, file_name);[m
+[32m+[m[32m         End_File_IO.Set_Index(End_File, End_File_IO.Count(Last_Index));[m
+[32m+[m[32m         while not End_File_IO.End_Of_File(End_File) loop[m
+[32m+[m[32m            End_File_IO.Read (End_File, End_Content);[m
+[32m+[m[32m            GNAT.SHA1.Update(C, End_Content);[m
+[32m+[m[32m         end loop;[m
+[32m+[m[32m         End_File_IO.Close(End_File);[m
+[32m+[m[32m      end if;[m
+[32m+[m
+       return GNAT.SHA1.Digest (C);[m
+    end get_file_sha1;[m
+ [m
+[1mdiff --git a/src/main.adb b/src/main.adb[m
+[1mindex 6979afc..c95ce8b 100644[m
+[1m--- a/src/main.adb[m
+[1m+++ b/src/main.adb[m
+[36m@@ -97,7 +97,7 @@[m [mprocedure main is[m
+    procedure Add_Files[m
+      (DB_Conn   : in out SQLite.Data_Base;[m
+       Namespace :        UBS.Unbounded_String;[m
+[31m-      Directory :        String := ".")[m
+[32m+[m[32m      Directory :        String)[m
+    is[m
+ [m
+       Search  : Search_Type;[m

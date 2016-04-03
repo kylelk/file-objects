@@ -97,7 +97,7 @@ procedure main is
    procedure Add_Files
      (DB_Conn   : in out SQLite.Data_Base;
       Namespace :        UBS.Unbounded_String;
-      Directory :        String := ".")
+      Directory :        String)
    is
 
       Search  : Search_Type;

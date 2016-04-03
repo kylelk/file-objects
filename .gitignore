@@ -6,3 +6,4 @@ obj/*
 *.ali
 *.db
 checkout/*
+demo/*
