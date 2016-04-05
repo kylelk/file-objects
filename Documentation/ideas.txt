@@ -10,3 +10,11 @@ the how the git version control system stores objects
 to remove a file create an album containing the items to remove then
 subtract the temporary album from the current album back into the current album
 
+have a HEAD file which refrences the current head album path using the syntax
+defined in album-path-example.txt
+
+the basic object file types will be:
+- blob
+- tree
+- file-info
+

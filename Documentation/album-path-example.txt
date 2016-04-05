@@ -1,5 +1,2 @@
-# this is an example of an album path reference
-da39a3ee5e6b4b0d3255bfef95601890afd80709 # file unique sha1
-default   # namespace
 food      # first album
 bread     # child album
