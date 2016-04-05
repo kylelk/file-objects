@@ -1,0 +1,3 @@
+use merkel trees to store the album structure.
+
+add set operations to albums such as union, intersection and diffrence.
