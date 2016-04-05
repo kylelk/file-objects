@@ -7,4 +7,6 @@ each object file starts with the object type name then the data length
 then terminates with a null byte before the data begins, the same as 
 the how the git version control system stores objects
 
-to remove a file use the set operation
+to remove a file create an album containing the items to remove then
+subtract the temporary album from the current album back into the current album
+
