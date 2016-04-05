@@ -1,3 +1,10 @@
 use merkel trees to store the album structure.
 
 add set operations to albums such as union, intersection and diffrence.
+use the result of the operation to create a new album.
+
+each object file starts with the object type name then the data length
+then terminates with a null byte before the data begins, the same as 
+the how the git version control system stores objects
+
+to remove a file use the set operation
